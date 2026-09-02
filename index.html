@@ -538,9 +538,42 @@
       </div>
       <div class="login-error" id="loginError">That name/PIN combination isn't right. Try again, or ask Bhagwat for your PIN.</div>
     </div>
+    <div class="modal-actions" style="justify-content:space-between;">
+      <button class="btn btn-ghost" id="loginForgotBtn" style="font-size:12.5px;">Change PIN</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost" id="loginCancelBtn">Cancel</button>
+        <button class="btn btn-primary" id="loginSubmitBtn">Log in</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="changePinOverlay">
+  <div class="modal" style="max-width:380px;">
+    <h2>Change PIN</h2>
+    <div class="form-grid" style="grid-template-columns:1fr;">
+      <div class="field">
+        <label>Your name</label>
+        <select id="cp_name"><option value="">Select your name</option></select>
+      </div>
+      <div class="field">
+        <label>Current PIN</label>
+        <input id="cp_old" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off"/>
+      </div>
+      <div class="field">
+        <label>New PIN (4–8 digits)</label>
+        <input id="cp_new1" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off"/>
+      </div>
+      <div class="field">
+        <label>Confirm new PIN</label>
+        <input id="cp_new2" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off"/>
+      </div>
+      <div class="login-error" id="changePinError">Something went wrong. Check your current PIN and try again.</div>
+      <div class="login-error" id="changePinSuccess" style="display:none;color:#2f7d4f;background:rgba(47,125,79,.1);">PIN updated! You can log in with your new PIN now.</div>
+    </div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" id="loginCancelBtn">Cancel</button>
-      <button class="btn btn-primary" id="loginSubmitBtn">Log in</button>
+      <button class="btn btn-ghost" id="changePinCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="changePinSubmitBtn">Update PIN</button>
     </div>
   </div>
 </div>
@@ -832,6 +865,65 @@ function logOut(){
   localStorage.removeItem('rfp-tracker-user');
   updateWhoUI();
 }
+
+// ---------- change PIN ----------
+function openChangePinModal(){
+  closeLoginModal();
+  document.getElementById('cp_name').innerHTML = '<option value="">Select your name</option>' + OWNERS.map(o=>`<option value="${o}">${o}</option>`).join('');
+  if(currentUser) document.getElementById('cp_name').value = currentUser.name;
+  document.getElementById('cp_old').value = '';
+  document.getElementById('cp_new1').value = '';
+  document.getElementById('cp_new2').value = '';
+  document.getElementById('changePinError').classList.remove('show');
+  document.getElementById('changePinSuccess').style.display = 'none';
+  document.getElementById('changePinOverlay').classList.add('open');
+}
+function closeChangePinModal(){ document.getElementById('changePinOverlay').classList.remove('open'); }
+async function attemptChangePin(){
+  const name = document.getElementById('cp_name').value;
+  const oldPin = document.getElementById('cp_old').value.trim();
+  const newPin1 = document.getElementById('cp_new1').value.trim();
+  const newPin2 = document.getElementById('cp_new2').value.trim();
+  const errEl = document.getElementById('changePinError');
+  const okEl = document.getElementById('changePinSuccess');
+  errEl.classList.remove('show'); okEl.style.display = 'none';
+  if(!name || !oldPin || !newPin1 || !newPin2){
+    errEl.textContent = 'Fill in your name, current PIN, and new PIN twice.'; errEl.classList.add('show'); return;
+  }
+  if(!/^\d{4,8}$/.test(newPin1)){
+    errEl.textContent = 'New PIN must be 4–8 digits, numbers only.'; errEl.classList.add('show'); return;
+  }
+  if(newPin1 !== newPin2){
+    errEl.textContent = "New PIN and confirmation don't match."; errEl.classList.add('show'); return;
+  }
+  try{
+    const res = await fetch(SHEETS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'changePin', name, oldPin, newPin: newPin1 }),
+    });
+    const data = await res.json();
+    if(data.success){
+      okEl.style.display = 'block';
+      // If the user who just changed their PIN is currently logged in, refresh their stored session pin.
+      if(currentUser && currentUser.name === name){
+        currentUser.pin = newPin1;
+        localStorage.setItem('rfp-tracker-user', JSON.stringify(currentUser));
+      }
+      toast('PIN updated for ' + name);
+    } else {
+      errEl.textContent = data.error || "Couldn't update PIN — check your current PIN and try again.";
+      errEl.classList.add('show');
+    }
+  }catch(e){
+    errEl.textContent = 'Could not reach the login service — check your connection.';
+    errEl.classList.add('show');
+  }
+}
+document.getElementById('loginForgotBtn').addEventListener('click', openChangePinModal);
+document.getElementById('changePinCancelBtn').addEventListener('click', closeChangePinModal);
+document.getElementById('changePinSubmitBtn').addEventListener('click', attemptChangePin);
+document.getElementById('changePinOverlay').addEventListener('click', (e)=>{ if(e.target.id==='changePinOverlay') closeChangePinModal(); });
 document.getElementById('loginCancelBtn').addEventListener('click', closeLoginModal);
 document.getElementById('loginSubmitBtn').addEventListener('click', attemptLogin);
 document.getElementById('login_pin').addEventListener('keydown', (e)=>{ if(e.key==='Enter') attemptLogin(); });
