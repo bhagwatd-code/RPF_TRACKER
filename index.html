@@ -109,6 +109,10 @@
   tbody tr:hover{background:var(--gold-light);}
   tbody tr.urgent-r{border-left-color:var(--red);}
   tbody tr.soon-r{border-left-color:var(--amber);}
+  .stalled-tag{margin-top:5px;font-size:10.5px;font-weight:700;color:var(--red);background:var(--red-bg);display:inline-block;padding:2px 7px;border-radius:5px;white-space:nowrap;cursor:help;}
+  .dup-item{border:1px solid var(--border);border-radius:8px;padding:10px 12px;background:var(--gold-light);}
+  .dup-client{font-weight:700;font-size:13.5px;}
+  .dup-meta{font-size:12px;color:var(--muted);margin-top:2px;}
   tbody td{padding:12px 14px;vertical-align:top;font-size:13px;}
   .td-client{font-weight:600;max-width:220px;}
   .td-client .sub{font-weight:400;color:var(--slate);font-size:12px;margin-top:2px;}
@@ -305,6 +309,10 @@
     <div class="panel">
       <h3>Upcoming Deadlines</h3>
       <div id="deadlinePanel"></div>
+    </div>
+    <div class="panel">
+      <h3>⚠ Stalled Deals</h3>
+      <div id="stalledPanel"></div>
     </div>
     <div class="panel">
       <h3>Won Opportunities (by Owner)</h3>
@@ -578,6 +586,18 @@
   </div>
 </div>
 
+<div class="overlay" id="duplicateOverlay">
+  <div class="modal" style="max-width:440px;">
+    <h2>This might already be tracked</h2>
+    <p style="font-size:13px;color:var(--muted);margin:0 0 12px;">Found existing deal(s) that look similar. Double-check before adding a new one:</p>
+    <div id="duplicateList" style="display:flex;flex-direction:column;gap:10px;max-height:260px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="duplicateCancelBtn">Go back &amp; edit</button>
+      <button class="btn btn-primary" id="duplicateConfirmBtn">Add anyway</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"><span id="toastMsg"></span></div>
 
 <script>
@@ -673,8 +693,75 @@ function nearestDeadlineDays(rec){
     .map(d=>daysUntil(d)).filter(d=>d!==null && d>=0);
   return cands.length ? Math.min(...cands) : null;
 }
+
+// ---------- stalled deal detector ----------
+// A deal is "stalled" if it's still open (Not Started / In Progress) but either:
+//  (a) its Pre-Bid or Submission date has already passed without the status moving on, or
+//  (b) it has no deadline dates at all and hasn't been touched in a long while.
+// This only looks at data already on the record — no extra fields needed.
+const STALL_NO_ACTIVITY_DAYS = 21;
+function stalledInfo(rec){
+  if(!rec.status || (rec.status !== 'Not Started' && rec.status !== 'In Progress')) return null;
+  const preBid = parseDateFlexible(rec.preBidDate);
+  const submission = parseDateFlexible(rec.submissionDate);
+  const overdue = [];
+  if(preBid){ const d = daysUntil(preBid); if(d !== null && d < 0) overdue.push({label:'Pre-Bid', daysOverdue:-d}); }
+  if(submission){ const d = daysUntil(submission); if(d !== null && d < 0) overdue.push({label:'Submission', daysOverdue:-d}); }
+  if(overdue.length){
+    overdue.sort((a,b)=>b.daysOverdue-a.daysOverdue);
+    return { reason: overdue[0].label + ' date passed ' + overdue[0].daysOverdue + 'd ago', daysOverdue: overdue[0].daysOverdue };
+  }
+  if(!preBid && !submission && rec.updatedAt){
+    const updated = new Date(rec.updatedAt);
+    if(!isNaN(updated)){
+      const idleDays = Math.round((new Date() - updated) / 86400000);
+      if(idleDays >= STALL_NO_ACTIVITY_DAYS){
+        return { reason: 'No update in ' + idleDays + 'd', daysOverdue: idleDays };
+      }
+    }
+  }
+  return null;
+}
+function getStalledDeals(){
+  return state.data.filter(r => stalledInfo(r) !== null);
+}
 function statusClass(s){ return "badge-" + s.replace(/[\s\/]/g,''); }
 function uid(){ return 'op-' + Date.now() + '-' + Math.random().toString(36).slice(2,8); }
+
+// ---------- fuzzy duplicate detection ----------
+// Lightweight Dice's coefficient (bigram overlap) similarity — no external library needed.
+// Used only as a soft warning when adding a NEW deal, comparing client name + requirement
+// text against existing open deals, to catch near-duplicate entries typed slightly
+// differently by two different owners.
+function normalizeForCompare_(s){ return (s||'').toLowerCase().replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim(); }
+function bigrams_(s){ const arr=[]; for(let i=0;i<s.length-1;i++) arr.push(s.substring(i,i+2)); return arr; }
+function diceSimilarity(a,b){
+  a = normalizeForCompare_(a); b = normalizeForCompare_(b);
+  if(!a || !b) return 0;
+  if(a === b) return 1;
+  const bgA = bigrams_(a), bgB = bigrams_(b);
+  if(!bgA.length || !bgB.length) return 0;
+  const counts = {};
+  bgB.forEach(bg => { counts[bg] = (counts[bg]||0) + 1; });
+  let matches = 0;
+  bgA.forEach(bg => { if(counts[bg] > 0){ matches++; counts[bg]--; } });
+  return (2 * matches) / (bgA.length + bgB.length);
+}
+const DUPLICATE_SIMILARITY_THRESHOLD = 0.72;
+function findPossibleDuplicates(client, requirement, excludeId){
+  const skip = ['Lost','Declined/No-Bid','Not Given/Cancelled']; // clearly dead — not worth warning about
+  return state.data
+    .filter(r => r.id !== excludeId && !skip.includes(r.status))
+    .map(r => {
+      const clientSim = diceSimilarity(client, r.client);
+      const reqSim = diceSimilarity(requirement, r.requirement);
+      const combined = (requirement && r.requirement) ? (0.6*clientSim + 0.4*reqSim) : clientSim;
+      return { rec: r, score: combined };
+    })
+    .filter(x => x.score >= DUPLICATE_SIMILARITY_THRESHOLD)
+    .sort((a,b) => b.score - a.score)
+    .slice(0, 3);
+}
 function escapeHtml(s){
   if(s===null||s===undefined) return '';
   return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -924,6 +1011,9 @@ document.getElementById('loginForgotBtn').addEventListener('click', openChangePi
 document.getElementById('changePinCancelBtn').addEventListener('click', closeChangePinModal);
 document.getElementById('changePinSubmitBtn').addEventListener('click', attemptChangePin);
 document.getElementById('changePinOverlay').addEventListener('click', (e)=>{ if(e.target.id==='changePinOverlay') closeChangePinModal(); });
+document.getElementById('duplicateCancelBtn').addEventListener('click', closeDuplicateWarning);
+document.getElementById('duplicateConfirmBtn').addEventListener('click', confirmSaveDespiteDuplicate);
+document.getElementById('duplicateOverlay').addEventListener('click', (e)=>{ if(e.target.id==='duplicateOverlay') closeDuplicateWarning(); });
 document.getElementById('loginCancelBtn').addEventListener('click', closeLoginModal);
 document.getElementById('loginSubmitBtn').addEventListener('click', attemptLogin);
 document.getElementById('login_pin').addEventListener('keydown', (e)=>{ if(e.key==='Enter') attemptLogin(); });
@@ -1119,6 +1209,7 @@ function render(){
   renderWorkloadChart();
   renderSubmittedChart();
   renderDeadlinePanel();
+  renderStalledPanel();
   renderWonByOwnerChart();
   renderACVTCVChart();
   renderPresentationChart();
@@ -1415,6 +1506,18 @@ function renderDeadlinePanel(){
   }).join('');
 }
 
+function renderStalledPanel(){
+  const stalled = getStalledDeals()
+    .map(r=>({rec:r, info:stalledInfo(r)}))
+    .sort((a,b)=>b.info.daysOverdue-a.info.daysOverdue)
+    .slice(0,6);
+  const el = document.getElementById('stalledPanel');
+  if(!stalled.length){ el.innerHTML = '<div class="no-deadlines">Nothing stalled right now — good shape!</div>'; return; }
+  el.innerHTML = stalled.map(({rec,info})=>
+    `<div class="deadline-item"><span class="dl-client">${escapeHtml(rec.client)} <span style="color:var(--muted);font-weight:400;">(${escapeHtml(rec.sa1||'Unassigned')})</span></span><span class="urgent-tag urgent-red">${escapeHtml(info.reason)}</span></div>`
+  ).join('');
+}
+
 // ---------- render: table ----------
 function renderTable(){
   const rows = getFiltered();
@@ -1429,13 +1532,14 @@ function renderTable(){
     const dOpen = daysOpen(r);
     const nd = nearestDeadlineDays(r);
     const urgencyClass = nd !== null && nd <= 3 ? 'urgent-r' : (nd !== null && nd <= 7 ? 'soon-r' : '');
+    const stalled = stalledInfo(r);
     return `
     <tr class="${urgencyClass}">
       <td class="td-client">${escapeHtml(r.client)}<div class="sub">${escapeHtml(r.requirement||'')}${r.potId ? ' · <span class="pot">'+escapeHtml(r.potId)+'</span>' : ''}</div></td>
       <td><span class="type-tag">${escapeHtml(r.type||'—')}</span></td>
       <td><span class="type-tag">${escapeHtml(r.sector||'—')}</span></td>
       <td class="owners">${escapeHtml(r.sa1||'—')}${r.sa2 ? '<div class="sa2">+ '+escapeHtml(r.sa2)+'</div>' : ''}${r.supportPartner ? '<div class="sa2">Support: '+escapeHtml(r.supportPartner)+'</div>' : ''}</td>
-      <td><span class="badge ${statusClass(r.status||'Not Started')}">${escapeHtml(r.status||'Not Started')}</span></td>
+      <td><span class="badge ${statusClass(r.status||'Not Started')}">${escapeHtml(r.status||'Not Started')}</span>${stalled ? `<div class="stalled-tag" title="${escapeHtml(stalled.reason)}">⚠ Stalled</div>` : ''}</td>
       <td class="money">${fmtMoney(r.status==='Won' ? (r.wonValue ?? r.estValue) : r.estValue)}</td>
       <td class="money">${fmtMoney(r.tcv)}</td>
       <td class="money">${fmtMoney(r.acv)}</td>
@@ -1462,13 +1566,16 @@ function renderBoard(){
     return `
     <div class="board-col" data-status="${status}" ondragover="onColDragOver(event,this)" ondragleave="onColDragLeave(this)" ondrop="onColDrop(event,'${status}',this)">
       <div class="board-col-head"><span>${status}</span><span class="cnt">${items.length}</span></div>
-      ${items.map(r=>`
+      ${items.map(r=>{
+        const stalled = stalledInfo(r);
+        return `
         <div class="board-card" draggable="true" ondragstart="onCardDragStart(event,'${r.id}')" ondragend="onCardDragEnd(this)" onclick="editRow('${r.id}')">
-          <div class="bc-client">${escapeHtml(r.client)}</div>
+          <div class="bc-client">${escapeHtml(r.client)}${stalled ? `<span class="stalled-tag" style="margin-left:6px;" title="${escapeHtml(stalled.reason)}">⚠ Stalled</span>` : ''}</div>
           <div class="bc-req">${escapeHtml(r.requirement||'')}</div>
           <div class="bc-meta"><span class="bc-owner">${escapeHtml(r.sa1||'Unassigned')}</span><span>${escapeHtml(r.type||'')}</span></div>
           <div class="bc-value">${fmtMoney(r.status==='Won' ? (r.wonValue ?? r.estValue) : r.estValue)}</div>
-        </div>`).join('') || '<div class="no-deadlines">Nothing here</div>'}
+        </div>`;
+      }).join('') || '<div class="no-deadlines">Nothing here</div>'}
     </div>`;
   }).join('');
 }
@@ -1554,6 +1661,7 @@ async function saveRow(){
   const sa1 = getOwnerField('f_sa1');
   if(!sa1){ toast('Presales Owner is required'); return; }
   const existing = state.editingId ? state.data.find(r=>r.id===state.editingId) : null;
+  const requirement = f('f_requirement');
   const rec = {
     id: state.editingId || uid(),
     potId: f('f_potId'),
@@ -1561,7 +1669,7 @@ async function saveRow(){
     type: f('f_type'),
     sector: f('f_sector'),
     client: client,
-    requirement: f('f_requirement'),
+    requirement: requirement,
     refNo: f('f_refNo'),
     preBidDate: f('f_preBidDate'),
     submissionDate: f('f_submissionDate'),
@@ -1582,9 +1690,44 @@ async function saveRow(){
     updatedAt: new Date().toISOString(),
     _seq: existing ? (existing._seq || Date.now()) : Date.now(),
   };
+
+  // Only check for duplicates when adding a brand-new deal — not when editing one.
+  if(!state.editingId){
+    const matches = findPossibleDuplicates(client, requirement, rec.id);
+    if(matches.length){
+      openDuplicateWarning(matches, rec);
+      return; // wait for the user's choice in the warning modal
+    }
+  }
+  finalizeSaveRow(rec);
+}
+
+function finalizeSaveRow(rec){
   closeModal();
   toast(state.editingId ? 'Opportunity updated' : 'Opportunity added');
   persistRecord(rec); // fires in the background — persistRecord already updates the UI instantly
+}
+
+let pendingDuplicateRec = null;
+function openDuplicateWarning(matches, rec){
+  pendingDuplicateRec = rec;
+  document.getElementById('duplicateList').innerHTML = matches.map(({rec:m,score}) =>
+    `<div class="dup-item">
+      <div class="dup-client">${escapeHtml(m.client)}</div>
+      <div class="dup-meta">${escapeHtml(m.requirement||'—')}</div>
+      <div class="dup-meta">Owner: ${escapeHtml(m.sa1||'—')} · Status: ${escapeHtml(m.status||'—')} · ${Math.round(score*100)}% similar</div>
+    </div>`
+  ).join('');
+  document.getElementById('duplicateOverlay').classList.add('open');
+}
+function closeDuplicateWarning(){
+  document.getElementById('duplicateOverlay').classList.remove('open');
+  pendingDuplicateRec = null;
+}
+function confirmSaveDespiteDuplicate(){
+  const rec = pendingDuplicateRec;
+  closeDuplicateWarning();
+  if(rec) finalizeSaveRow(rec);
 }
 
 window.editRow = function(id){
