@@ -1,0 +1,1871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SWARAJ Lakshya — Unified RFP Tracker for Presales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --orange: #E87722;
+    --orange-dark: #C15F16;
+    --orange-light: #FDEFE3;
+    --gold: #0D1B3A;
+    --gold-light: #EEF0F4;
+    --ink: #0D1B3A;
+    --slate: #6E655B;
+    --slate-light: #A79C8E;
+    --paper: #FAF7F2;
+    --card: #FFFFFF;
+    --line: #E7E0D3;
+    --green: #1F7A4D;
+    --green-bg: #E8F5EE;
+    --red: #8C2F2A;
+    --red-bg: #F7EAE7;
+    --amber: #9A6B1E;
+    --amber-bg: #F7EFDC;
+    --blue: #2A5C8A;
+    --blue-bg: #E9F1F8;
+    --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+    --sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --disp: 'Fraunces', Georgia, serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  ::selection{background:var(--orange-light);}
+  .app{max-width:1440px;margin:0 auto;padding:28px 28px 80px;}
+
+  /* HEADER */
+  .topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:22px;}
+  .brand{display:flex;align-items:center;gap:14px;}
+  .brand-mark{width:52px;height:auto;flex-shrink:0;display:block;}
+  .brand h1{font-family:var(--disp);font-size:24px;font-weight:600;margin:0;letter-spacing:-0.01em;}
+  .brand p{margin:3px 0 0;color:var(--slate);font-size:12.5px;letter-spacing:.02em;}
+  .who{display:flex;align-items:center;gap:10px;}
+  .who-label{font-size:12px;color:var(--slate);}
+  .signed-in-pill{display:flex;align-items:center;gap:9px;font-size:13px;}
+  .signed-in-pill .name{font-family:var(--mono);font-weight:600;color:var(--ink);}
+  .signed-in-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;}
+  .login-error{color:var(--red);font-size:12.5px;margin-top:10px;display:none;}
+  .login-error.show{display:block;}
+
+  /* STATS */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:12px;margin-bottom:14px;}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:17px 19px;position:relative;overflow:hidden;box-shadow:0 1px 2px rgba(26,24,21,0.04);}
+  .stat .label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--slate);font-weight:600;}
+  .stat .value{font-family:var(--disp);font-size:25px;font-weight:600;margin-top:6px;letter-spacing:-0.01em;}
+  .stat.accent{background:linear-gradient(155deg,var(--orange) 0%, var(--orange-dark) 100%);border-color:transparent;}
+  .stat.accent .label{color:var(--gold-light);opacity:0.9;}
+  .stat.accent .value{color:#fff;}
+  .stat .sub{font-size:11.5px;color:var(--slate-light);margin-top:3px;}
+
+  /* WORKLOAD CHART */
+  .panel-row{display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:12px;margin-bottom:20px;}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:17px 19px;box-shadow:0 1px 2px rgba(26,24,21,0.04);}
+  .panel h3{font-family:var(--disp);font-size:14.5px;margin:0 0 13px;font-weight:600;color:var(--ink);letter-spacing:.01em;}
+  .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;}
+  .bar-row .bname{width:130px;flex-shrink:0;color:var(--slate);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bar-track{flex:1;background:var(--paper);border-radius:5px;height:9px;overflow:hidden;}
+  .bar-fill{height:100%;background:linear-gradient(90deg,var(--orange),var(--orange-dark));border-radius:5px;}
+  .bar-count{width:22px;text-align:right;color:var(--ink);font-weight:600;font-family:var(--mono);font-size:11.5px;}
+  .deadline-item{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px;}
+  .deadline-item:last-child{border-bottom:none;}
+  .deadline-item .dl-client{font-weight:600;}
+  .deadline-item .dl-date{font-family:var(--mono);font-size:11.5px;}
+  .urgent-tag{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.03em;}
+  .urgent-red{background:var(--red-bg);color:var(--red);}
+  .urgent-amber{background:var(--amber-bg);color:var(--amber);}
+  .no-deadlines{color:var(--slate-light);font-size:12.5px;padding:6px 0;}
+  .subhead{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--slate-light);font-weight:700;margin:12px 0 6px;}
+  .subhead:first-child{margin-top:0;}
+
+  /* TOOLBAR */
+  .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+  .toolbar input[type=text], .toolbar select{font-family:var(--sans);font-size:13px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);}
+  .toolbar input[type=text]{min-width:200px;flex:1;}
+  .toolbar select{color:var(--slate);}
+  .btn{font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 16px;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;transition:all .12s ease;white-space:nowrap;}
+  .btn:hover{border-color:var(--gold);}
+  .btn-primary{background:var(--orange);border-color:var(--orange);color:var(--gold-light);letter-spacing:.01em;}
+  .btn-primary:hover{background:var(--orange-dark);border-color:var(--gold);}
+  .btn-ghost{background:transparent;border-color:transparent;color:var(--slate);}
+  .btn-ghost:hover{color:var(--ink);background:var(--line);}
+  .spacer{flex:1;}
+  .view-toggle{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+  .view-toggle button{border:none;background:var(--card);padding:8px 14px;font-size:13px;font-weight:600;color:var(--slate);cursor:pointer;}
+  .view-toggle button.active{background:var(--orange);color:var(--gold-light);}
+
+  /* TABLE */
+  .table-wrap{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow-x:auto;box-shadow:0 1px 3px rgba(26,24,21,0.05);}
+  table{width:100%;border-collapse:collapse;}
+  thead th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--slate);font-weight:600;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--gold-light);cursor:pointer;user-select:none;white-space:nowrap;}
+  thead th:hover{color:var(--ink);}
+  thead th.sorted{color:var(--orange-dark);}
+  tbody tr{border-bottom:1px solid var(--line);transition:background .1s;border-left:3px solid transparent;}
+  tbody tr:last-child{border-bottom:none;}
+  tbody tr:hover{background:var(--gold-light);}
+  tbody tr.urgent-r{border-left-color:var(--red);}
+  tbody tr.soon-r{border-left-color:var(--amber);}
+  .stalled-tag{margin-top:5px;font-size:10.5px;font-weight:700;color:var(--red);background:var(--red-bg);display:inline-block;padding:2px 7px;border-radius:5px;white-space:nowrap;cursor:help;}
+  .dup-item{border:1px solid var(--border);border-radius:8px;padding:10px 12px;background:var(--gold-light);}
+  .dup-client{font-weight:700;font-size:13.5px;}
+  .dup-meta{font-size:12px;color:var(--muted);margin-top:2px;}
+  tbody td{padding:12px 14px;vertical-align:top;font-size:13px;}
+  .td-client{font-weight:600;max-width:220px;}
+  .td-client .sub{font-weight:400;color:var(--slate);font-size:12px;margin-top:2px;}
+  .pot{font-family:var(--mono);font-size:11.5px;color:var(--slate);}
+  .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:600;white-space:nowrap;}
+  .badge-Won{background:var(--green-bg);color:var(--green);}
+  .badge-Lost{background:var(--red-bg);color:var(--red);}
+  .badge-DeclinedNoBid{background:var(--red-bg);color:var(--red);}
+  .badge-Completed{background:var(--green-bg);color:var(--green);}
+  .badge-NotGivenCancelled{background:var(--red-bg);color:var(--red);}
+  .badge-Submitted{background:var(--blue-bg);color:var(--blue);}
+  .badge-InProgress{background:var(--amber-bg);color:var(--amber);}
+  .badge-NotStarted{background:#F1EEEA;color:var(--slate);}
+  .type-tag{font-size:11px;color:var(--slate-light);font-weight:600;text-transform:uppercase;letter-spacing:.03em;}
+  .owners{font-size:12.5px;}
+  .owners .sa2{color:var(--slate-light);}
+  .money{font-family:var(--mono);font-size:12.5px;}
+  .days{font-family:var(--mono);font-size:12.5px;color:var(--slate);}
+  .row-actions{display:flex;gap:4px;justify-content:flex-end;}
+  .icon-btn{border:none;background:transparent;color:var(--slate-light);cursor:pointer;padding:5px 7px;border-radius:6px;font-size:13px;}
+  .icon-btn:hover{background:var(--line);color:var(--ink);}
+  .remarks-cell{max-width:190px;color:var(--slate);font-size:12.5px;}
+  .updated-cell{font-size:11px;color:var(--slate-light);white-space:nowrap;}
+  .empty{padding:60px 20px;text-align:center;color:var(--slate);}
+  .empty h3{font-family:var(--disp);color:var(--ink);margin-bottom:6px;}
+
+  /* BOARD VIEW */
+  .board{display:flex;gap:12px;overflow-x:auto;padding-bottom:10px;}
+  .board-col{flex:0 0 265px;background:#FBF9F5;border:1px solid var(--line);border-radius:10px;padding:10px;min-height:200px;}
+  .board-col.dragover{background:var(--orange-light);border-color:var(--orange);}
+  .board-col-head{display:flex;justify-content:space-between;align-items:center;padding:6px 6px 11px;margin-bottom:2px;border-bottom:2px solid var(--gold);font-family:var(--disp);font-weight:600;font-size:13.5px;}
+  .board-col-head .cnt{font-family:var(--mono);color:var(--slate-light);font-size:11.5px;}
+  .board-card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:11px 12px;margin-bottom:8px;cursor:grab;transition:box-shadow .12s, transform .12s;box-shadow:0 1px 2px rgba(26,24,21,0.05);}
+  .board-card:hover{box-shadow:0 3px 10px rgba(34,29,26,0.08);}
+  .board-card.dragging{opacity:0.4;}
+  .board-card .bc-client{font-weight:700;font-size:13px;margin-bottom:3px;}
+  .board-card .bc-req{color:var(--slate);font-size:11.5px;margin-bottom:7px;}
+  .board-card .bc-meta{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--slate-light);}
+  .board-card .bc-owner{font-weight:600;color:var(--ink);}
+  .board-card .bc-value{font-family:var(--mono);font-size:11px;color:var(--orange-dark);font-weight:600;margin-top:5px;}
+
+  /* MODAL */
+  .overlay{position:fixed;inset:0;background:rgba(34,29,26,0.5);display:none;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto;z-index:50;}
+  .overlay.open{display:flex;}
+  .modal{background:var(--card);border-radius:12px;width:100%;max-width:640px;padding:28px 30px 26px;box-shadow:0 24px 70px rgba(10,12,10,0.35);border:1px solid var(--gold-light);}
+  .modal h2{font-family:var(--disp);font-size:21px;font-weight:600;margin:0 0 20px;letter-spacing:-0.01em;}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .form-grid .full{grid-column:1/-1;}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--slate);margin-bottom:5px;}
+  .field input, .field select, .field textarea{width:100%;font-family:var(--sans);font-size:13.5px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);}
+  .field input:focus, .field select:focus, .field textarea:focus{outline:none;border-color:var(--orange);background:#fff;}
+  .field textarea{resize:vertical;min-height:44px;font-family:var(--sans);}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px;}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 20px;border-radius:9px;font-size:13px;opacity:0;transition:all .25s ease;pointer-events:none;z-index:100;display:flex;align-items:center;gap:12px;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
+  .toast button{background:var(--orange);border:none;color:#fff;padding:5px 11px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;}
+
+  .footer-note{text-align:center;color:var(--slate-light);font-size:12px;margin-top:22px;}
+
+  @media (max-width:1000px){
+    .stats{grid-template-columns:repeat(2,1fr);}
+    .panel-row{grid-template-columns:1fr;}
+    .form-grid{grid-template-columns:1fr;}
+    .app{padding:18px;}
+    table{font-size:12px;}
+  }
+
+  /* -------- DASHBOARD (Grafana-style dark panel grid) -------- */
+  :root{
+    --dash-bg: #0E1117;
+    --dash-panel: #171B24;
+    --dash-line: #262B38;
+    --dash-text: #E4E7EE;
+    --dash-muted: #8B93A7;
+    --dash-green: #3DD68C;
+    --dash-blue: #4C9FFE;
+    --dash-amber: #F5B942;
+    --dash-red: #F4615B;
+    --dash-purple: #A78BFA;
+  }
+  .dash-wrap{
+    background:var(--dash-bg);
+    border-radius:14px;
+    padding:20px;
+    margin-top:2px;
+  }
+  .dash-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+  .dash-header h2{font-family:var(--disp);color:var(--dash-text);font-size:17px;font-weight:600;margin:0;}
+  .dash-live{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--dash-muted);}
+  .dash-period-select{
+    background:var(--dash-panel);border:1px solid var(--dash-line);color:var(--dash-text);
+    font-family:var(--sans);font-size:12.5px;padding:7px 11px;border-radius:7px;cursor:pointer;
+  }
+  .dash-period-select:focus{outline:1px solid var(--dash-blue);}
+  .period-select{font-weight:600;color:var(--orange-dark);border-color:var(--orange-light);}
+  .dash-live .pulse{width:7px;height:7px;border-radius:50%;background:var(--dash-green);box-shadow:0 0 0 0 rgba(61,214,140,0.6);animation:pulse 2s infinite;}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(61,214,140,0.5);}
+    70%{box-shadow:0 0 0 7px rgba(61,214,140,0);}
+    100%{box-shadow:0 0 0 0 rgba(61,214,140,0);}
+  }
+  .dash-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px;}
+  .dash-panel{
+    background:var(--dash-panel);
+    border:1px solid var(--dash-line);
+    border-radius:10px;
+    padding:14px 16px;
+    min-height:180px;
+    display:flex;
+    flex-direction:column;
+  }
+  .dash-panel h4{
+    font-family:var(--sans);font-size:11.5px;font-weight:600;text-transform:uppercase;
+    letter-spacing:.06em;color:var(--dash-muted);margin:0 0 10px;
+  }
+  .dash-panel .canvas-wrap{position:relative;flex:1;min-height:140px;}
+  .dash-span-3{grid-column:span 3;}
+  .dash-span-4{grid-column:span 4;}
+  .dash-span-6{grid-column:span 6;}
+  .dash-span-8{grid-column:span 8;}
+  .dash-span-12{grid-column:span 12;}
+  .dash-stat{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;min-height:auto;}
+  .dash-stat .big{font-family:var(--disp);font-size:28px;font-weight:700;color:var(--dash-text);}
+  .dash-stat .big.green{color:var(--dash-green);}
+  .dash-stat .big.red{color:var(--dash-red);}
+  .dash-stat .big.blue{color:var(--dash-blue);}
+  .dash-stat .cap{font-size:11px;color:var(--dash-muted);margin-top:4px;}
+  .gauge-center{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    text-align:center;pointer-events:none;
+  }
+  .gauge-center .num{font-family:var(--disp);font-size:26px;font-weight:700;color:var(--dash-text);}
+  .gauge-center .lbl{font-size:10px;color:var(--dash-muted);text-transform:uppercase;letter-spacing:.05em;}
+  @media (max-width:900px){
+    .dash-span-3,.dash-span-4,.dash-span-6,.dash-span-8{grid-column:span 12;}
+  }
+</style>
+
+<!-- ===================================================================
+  GOOGLE SHEETS SETUP — paste your Apps Script Web App URL below.
+  Full deployment steps + the Apps Script code are in the README that came with this file.
+=================================================================== -->
+<script>
+  const SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbztx_PUyoBtCzVk19ywmnEOc9uGJeqeFB_7CM1pIkr-qTrrw3XM06IaROEnquWjhg_i/exec";
+</script>
+<!-- Chart.js is embedded directly here (not loaded from a CDN) so the Dashboard
+     tab works even on networks that block external script CDNs. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.1/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <img class="brand-mark" src="logo.png" alt="ESDS logo"/>
+      <div>
+        <h1><span style="color:var(--orange);">SWARAJ</span> Lakshya</h1>
+        <p>Unified RFP Tracker for Presales Team</p>
+      </div>
+    </div>
+    <div class="who" id="whoWrap">
+      <button class="btn btn-primary" id="loginBtn">Log in</button>
+    </div>
+  </div>
+
+  <div class="stats" id="statsRow"></div>
+
+  <div class="panel-row">
+    <div class="panel">
+      <h3>Owner Workload (in progress)</h3>
+      <div id="workloadChart"></div>
+    </div>
+    <div class="panel">
+      <h3>Submitted Deals (by Owner)</h3>
+      <div id="submittedChart"></div>
+    </div>
+    <div class="panel">
+      <h3>Upcoming Deadlines</h3>
+      <div id="deadlinePanel"></div>
+    </div>
+    <div class="panel">
+      <h3>⚠ Stalled Deals</h3>
+      <div id="stalledPanel"></div>
+    </div>
+    <div class="panel">
+      <h3>Won Opportunities (by Owner)</h3>
+      <div id="wonByOwnerChart"></div>
+    </div>
+    <div class="panel">
+      <h3>ACV / TCV Contribution (by Owner)</h3>
+      <div id="acvTcvChart"></div>
+    </div>
+    <div class="panel">
+      <h3>Presentations / Workshops Given (by Owner)</h3>
+      <div id="presentationChart"></div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <input type="text" id="searchBox" placeholder="Search client, POT ID, requirement..."/>
+    <select id="filterStatus"><option value="">All statuses</option></select>
+    <select id="filterType"><option value="">All types</option></select>
+    <select id="filterSector"><option value="">All sectors</option></select>
+    <select id="filterOwner"><option value="">All owners</option></select>
+    <select id="periodFilter" class="period-select"></select>
+    <span class="spacer"></span>
+    <div class="view-toggle">
+      <button id="viewTableBtn" class="active">Table</button>
+      <button id="viewBoardBtn">Board</button>
+      <button id="viewDashboardBtn">Dashboard</button>
+    </div>
+    <button class="btn btn-ghost" id="clearFiltersBtn">Clear filters</button>
+    <button class="btn btn-ghost" id="exportBtn">Export CSV</button>
+    <button class="btn btn-primary" id="newBtn">+ New Opportunity</button>
+  </div>
+
+  <div id="tableView">
+    <div class="table-wrap">
+      <table id="track">
+        <thead>
+          <tr>
+            <th data-key="client">Client / Project</th>
+            <th data-key="type">Type</th>
+            <th data-key="sector">Sector</th>
+            <th data-key="owners">Owner(s)</th>
+            <th data-key="status">Status</th>
+            <th data-key="estValue">Est. Value</th>
+            <th data-key="tcv">TCV</th>
+            <th data-key="acv">ACV</th>
+            <th data-key="submissionDate">Submission</th>
+            <th data-key="daysOpen">Days Open</th>
+            <th>Remarks</th>
+            <th>Updated</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty" id="emptyState" style="display:none;">
+        <h3>No opportunities match</h3>
+        <p>Try clearing filters, or add a new opportunity.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="boardView" style="display:none;">
+    <div class="board" id="boardWrap"></div>
+  </div>
+
+  <div id="dashboardView" style="display:none;">
+    <div class="dash-wrap">
+      <div class="dash-header">
+        <h2>Presales Command Center</h2>
+        <div class="dash-live" id="dashLiveStatus"><span class="pulse"></span> Live · synced with Google Sheets</div>
+      </div>
+      <div class="dash-grid">
+        <div class="dash-panel dash-span-3 dash-stat">
+          <h4>Total Pipeline</h4>
+          <div class="big blue" id="dashPipelineValue">—</div>
+          <div class="cap" id="dashPipelineSub">—</div>
+        </div>
+        <div class="dash-panel dash-span-3 dash-stat">
+          <h4>Won Value</h4>
+          <div class="big green" id="dashWonValue">—</div>
+          <div class="cap" id="dashWonSub">—</div>
+        </div>
+        <div class="dash-panel dash-span-3 dash-stat">
+          <h4>Total TCV / ACV</h4>
+          <div class="big" id="dashTcvAcv">—</div>
+          <div class="cap" id="dashTcvAcvSub">—</div>
+        </div>
+        <div class="dash-panel dash-span-3">
+          <h4>Win Rate</h4>
+          <div class="canvas-wrap">
+            <canvas id="chartWinRate"></canvas>
+            <div class="gauge-center"><div class="num" id="dashWinRateNum">—</div><div class="lbl">win rate</div></div>
+          </div>
+        </div>
+
+        <div class="dash-panel dash-span-8">
+          <h4>Opportunities Received (last 6 months)</h4>
+          <div class="canvas-wrap"><canvas id="chartReceivedTrend"></canvas></div>
+        </div>
+        <div class="dash-panel dash-span-4">
+          <h4>Status Breakdown</h4>
+          <div class="canvas-wrap"><canvas id="chartStatusDonut"></canvas></div>
+        </div>
+
+        <div class="dash-panel dash-span-6">
+          <h4>Pipeline Value by Owner</h4>
+          <div class="canvas-wrap"><canvas id="chartOwnerValue"></canvas></div>
+        </div>
+        <div class="dash-panel dash-span-6">
+          <h4>Won Value by Month</h4>
+          <div class="canvas-wrap"><canvas id="chartWonTrend"></canvas></div>
+        </div>
+
+        <div class="dash-panel dash-span-4">
+          <h4>Type Breakdown</h4>
+          <div class="canvas-wrap"><canvas id="chartTypeDonut"></canvas></div>
+        </div>
+        <div class="dash-panel dash-span-4">
+          <h4>Sector Breakdown</h4>
+          <div class="canvas-wrap"><canvas id="chartSectorDonut"></canvas></div>
+        </div>
+        <div class="dash-panel dash-span-4">
+          <h4>ACV / TCV by Owner</h4>
+          <div class="canvas-wrap"><canvas id="chartAcvTcvOwner"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="footer-note" id="lastSync">Loading shared tracker…</p>
+  <p class="footer-note" style="margin-top:4px;">Developed by <strong>Bhagwat Dhanore</strong> — Solution Architect</p>
+</div>
+
+<datalist id="ownerList"></datalist>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle">New Opportunity</h2>
+    <div class="form-grid">
+      <div class="field"><label>Client / Organisation / Project</label><input id="f_client" type="text" placeholder="e.g. JNPA"/></div>
+      <div class="field"><label>Requirement</label><input id="f_requirement" type="text" placeholder="e.g. Digital twin, SAP, DR"/></div>
+
+      <div class="field"><label>Type</label>
+        <select id="f_type" onchange="onTypeChange()"><option>RFP</option><option>Enquiry</option><option>Enterprise</option><option>RFP Draft</option><option>Presentation/Workshop</option></select>
+      </div>
+      <div class="field"><label>Opportunity Sector</label>
+        <select id="f_sector">
+          <option>Government/PSU</option><option>BFSI</option><option>Healthcare</option>
+          <option>Education</option><option>Manufacturing</option><option>IT/Telecom</option>
+          <option>Power &amp; Energy</option><option>Others</option>
+        </select>
+      </div>
+
+      <div class="field"><label>Status</label>
+        <select id="f_status"></select>
+      </div>
+      <div class="field"><label>POT ID</label><input id="f_potId" type="text" placeholder="POT-2026-XXX"/></div>
+
+      <div class="field"><label>Reference / RFP No.</label><input id="f_refNo" type="text"/></div>
+      <div class="field"><label>Date Received</label><input id="f_dateReceived" type="date"/></div>
+
+      <div class="field"><label>Pre-Bid Date</label><input id="f_preBidDate" type="date"/></div>
+      <div class="field"><label>Submission Date</label><input id="f_submissionDate" type="date"/></div>
+
+      <div class="field"><label>Won Value (INR, if won)</label><input id="f_wonValue" type="number" placeholder="0"/></div>
+      <div class="field"></div>
+
+      <div class="field">
+        <label>Presales Owner</label>
+        <select id="f_sa1" onchange="toggleOther('f_sa1')"><option value="">Select owner</option></select>
+      </div>
+      <div class="field" id="f_sa1_other_wrap" style="display:none;">
+        <label>Owner name (new)</label>
+        <input id="f_sa1_other" type="text" placeholder="Type name"/>
+      </div>
+
+      <div class="field">
+        <label>Sales Person</label>
+        <select id="f_sa2" onchange="toggleOther('f_sa2')"><option value="">None</option></select>
+      </div>
+      <div class="field" id="f_sa2_other_wrap" style="display:none;">
+        <label>Sales person name (new)</label>
+        <input id="f_sa2_other" type="text" placeholder="Type name"/>
+      </div>
+
+      <div class="field">
+        <label>Supporting Presales Partner</label>
+        <select id="f_supportPartner"><option value="">None</option></select>
+      </div>
+      <div class="field"></div>
+
+      <div class="field"><label>TCV — Total Contract Value (INR)</label><input id="f_tcv" type="number" placeholder="0" oninput="recalcACV()"/></div>
+      <div class="field"><label>Contract Period Unit</label>
+        <select id="f_contractUnit" onchange="onContractUnitChange()">
+          <option>One Time</option><option>Days</option><option>Months</option><option>Year</option>
+        </select>
+      </div>
+
+      <div class="field" id="f_contractPeriod_wrap"><label>Contract Period</label><input id="f_contractMonths" type="number" placeholder="e.g. 36" oninput="recalcACV()"/></div>
+      <div class="field" id="f_otcCost_wrap" style="display:none;"><label>One Time Infra Cost (OTC, INR)</label><input id="f_otcCost" type="number" placeholder="0"/></div>
+
+      <div class="field full">
+        <label>ACV — Annual Contract Value (auto-calculated)</label>
+        <input id="f_acv" type="text" readonly style="background:var(--gold-light);font-family:var(--mono);color:var(--slate);"/>
+      </div>
+
+      <div class="field full"><label>Challenges / Risks</label><textarea id="f_challenges"></textarea></div>
+      <div class="field full"><label>Remarks / Next Action</label><textarea id="f_remarks"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="cancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="saveBtn">Save Opportunity</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN MODAL -->
+<div class="overlay" id="loginOverlay">
+  <div class="modal" style="max-width:380px;">
+    <h2>Log in</h2>
+    <div class="form-grid" style="grid-template-columns:1fr;">
+      <div class="field">
+        <label>Your name</label>
+        <select id="login_name"><option value="">Select your name</option></select>
+      </div>
+      <div class="field">
+        <label>PIN</label>
+        <input id="login_pin" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off"/>
+      </div>
+      <div class="login-error" id="loginError">That name/PIN combination isn't right. Try again, or ask Bhagwat for your PIN.</div>
+    </div>
+    <div class="modal-actions" style="justify-content:space-between;">
+      <button class="btn btn-ghost" id="loginForgotBtn" style="font-size:12.5px;">Change PIN</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost" id="loginCancelBtn">Cancel</button>
+        <button class="btn btn-primary" id="loginSubmitBtn">Log in</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="changePinOverlay">
+  <div class="modal" style="max-width:380px;">
+    <h2>Change PIN</h2>
+    <div class="form-grid" style="grid-template-columns:1fr;">
+      <div class="field">
+        <label>Your name</label>
+        <select id="cp_name"><option value="">Select your name</option></select>
+      </div>
+      <div class="field">
+        <label>Current PIN</label>
+        <input id="cp_old" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off"/>
+      </div>
+      <div class="field">
+        <label>New PIN (4–8 digits)</label>
+        <input id="cp_new1" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off"/>
+      </div>
+      <div class="field">
+        <label>Confirm new PIN</label>
+        <input id="cp_new2" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off"/>
+      </div>
+      <div class="login-error" id="changePinError">Something went wrong. Check your current PIN and try again.</div>
+      <div class="login-error" id="changePinSuccess" style="display:none;color:#2f7d4f;background:rgba(47,125,79,.1);">PIN updated! You can log in with your new PIN now.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="changePinCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="changePinSubmitBtn">Update PIN</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="duplicateOverlay">
+  <div class="modal" style="max-width:440px;">
+    <h2>This might already be tracked</h2>
+    <p style="font-size:13px;color:var(--muted);margin:0 0 12px;">Found existing deal(s) that look similar. Double-check before adding a new one:</p>
+    <div id="duplicateList" style="display:flex;flex-direction:column;gap:10px;max-height:260px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="duplicateCancelBtn">Go back &amp; edit</button>
+      <button class="btn btn-primary" id="duplicateConfirmBtn">Add anyway</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+<script>
+const SEED_DATA = [];
+
+const OWNERS = ["Yogesh Dusane","Nilesh Kaklij","Pooja Kale","Vishal Pawale","Bhagwat Dhanore",
+  "Vinayak Amrutkar","Priyanka Malunjkar","Akshay Karandikar","Nikhil Sharma"];
+const SALES_PEOPLE = ["Ravi S","Utpal Saha","Amandeep S","Shreyas Shetye","Tushar Pawar",
+  "Hussain T","Shubham Raut","Kishor Shah","Lokesh Sharma","Sandesh Sonar"];
+const STATUSES = ["Not Started","In Progress","Submitted","Won","Lost","Declined/No-Bid"];
+const PRESENTATION_STATUSES = ["Completed","Not Given/Cancelled"];
+const ALL_STATUSES = [...STATUSES, ...PRESENTATION_STATUSES];
+const TYPES = ["RFP","Enquiry","Enterprise","RFP Draft","Presentation/Workshop"];
+const SECTORS = ["Government/PSU","BFSI","Healthcare","Education","Manufacturing","IT/Telecom","Power & Energy","Others"];
+// Statuses that mean an opportunity/activity is finished — used to decide what counts as
+// "active"/"in pipeline" everywhere in the stats, charts, and deadline logic.
+const CLOSED_STATUSES = ["Won","Lost","Declined/No-Bid","Completed","Not Given/Cancelled"];
+const LOST_LIKE_STATUSES = ["Lost","Declined/No-Bid","Not Given/Cancelled"];
+const STORAGE_KEY = "rfp-tracker-opportunities";
+const MANAGER_NAME = "Yogesh Dusane";
+
+let state = { data: [], sortKey: "submissionDate", sortDir: "desc", editingId: null, view: "table", dragId: null };
+let pendingDelete = null;
+let hiddenIds = new Set();
+
+// ---------- helpers ----------
+function toast(msg, withUndo){
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  const existingBtn = t.querySelector('button');
+  if(existingBtn) existingBtn.remove();
+  if(withUndo){
+    const btn = document.createElement('button');
+    btn.textContent = 'Undo';
+    btn.onclick = withUndo;
+    t.appendChild(btn);
+  }
+  t.classList.add('show');
+  clearTimeout(toast._h);
+  toast._h = setTimeout(()=>{ t.classList.remove('show'); if(pendingDelete){ finalizeDelete(); } }, withUndo ? 5000 : 2200);
+}
+function fmtMoney(n){
+  if(n === null || n === undefined || n === "" || isNaN(n)) return "—";
+  n = Number(n);
+  if(n >= 10000000) return "₹" + (n/10000000).toFixed(2) + "Cr";
+  if(n >= 100000) return "₹" + (n/100000).toFixed(2) + "L";
+  return "₹" + n.toLocaleString('en-IN');
+}
+function parseDateFlexible(s){
+  if(!s) return null;
+  s = String(s).trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // Full ISO datetime (e.g. from a Sheets cell that stored a real Date object): 2026-07-01T00:00:00.000Z
+  const isoDt = s.match(/^(\d{4}-\d{2}-\d{2})[T ]/);
+  if(isoDt) return isoDt[1];
+  const m = s.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})/);
+  if(m){
+    const months = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
+    const mm = months[m[2]];
+    if(mm) return `${m[3]}-${mm}-${m[1].padStart(2,'0')}`;
+  }
+  const m2 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m2) return `${m2[3]}-${m2[1].padStart(2,'0')}-${m2[2].padStart(2,'0')}`;
+  return null;
+}
+function fmtDate(iso){
+  if(!iso) return "—";
+  const d = new Date(iso + 'T00:00:00');
+  if(isNaN(d)) return "—";
+  return d.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'});
+}
+function daysOpen(rec){
+  const start = parseDateFlexible(rec.dateReceived);
+  if(!start) return null;
+  const startD = new Date(start + 'T00:00:00');
+  let end;
+  if(CLOSED_STATUSES.includes(rec.status) && rec.submissionDate){
+    const sub = parseDateFlexible(rec.submissionDate);
+    end = sub ? new Date(sub + 'T00:00:00') : new Date();
+  } else { end = new Date(); }
+  const diff = Math.round((end - startD) / 86400000);
+  return diff >= 0 ? diff : null;
+}
+function daysUntil(iso){
+  if(!iso) return null;
+  const d = new Date(iso + 'T00:00:00');
+  if(isNaN(d)) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Math.round((d - today) / 86400000);
+}
+function nearestDeadlineDays(rec){
+  if(CLOSED_STATUSES.includes(rec.status)) return null;
+  const cands = [parseDateFlexible(rec.preBidDate), parseDateFlexible(rec.submissionDate)]
+    .map(d=>daysUntil(d)).filter(d=>d!==null && d>=0);
+  return cands.length ? Math.min(...cands) : null;
+}
+
+// ---------- stalled deal detector ----------
+// A deal is "stalled" if it's still open (Not Started / In Progress) but either:
+//  (a) its Pre-Bid or Submission date has already passed without the status moving on, or
+//  (b) it has no deadline dates at all and hasn't been touched in a long while.
+// This only looks at data already on the record — no extra fields needed.
+const STALL_NO_ACTIVITY_DAYS = 21;
+function stalledInfo(rec){
+  if(!rec.status || (rec.status !== 'Not Started' && rec.status !== 'In Progress')) return null;
+  const preBid = parseDateFlexible(rec.preBidDate);
+  const submission = parseDateFlexible(rec.submissionDate);
+  const overdue = [];
+  if(preBid){ const d = daysUntil(preBid); if(d !== null && d < 0) overdue.push({label:'Pre-Bid', daysOverdue:-d}); }
+  if(submission){ const d = daysUntil(submission); if(d !== null && d < 0) overdue.push({label:'Submission', daysOverdue:-d}); }
+  if(overdue.length){
+    overdue.sort((a,b)=>b.daysOverdue-a.daysOverdue);
+    return { reason: overdue[0].label + ' date passed ' + overdue[0].daysOverdue + 'd ago', daysOverdue: overdue[0].daysOverdue };
+  }
+  if(!preBid && !submission && rec.updatedAt){
+    const updated = new Date(rec.updatedAt);
+    if(!isNaN(updated)){
+      const idleDays = Math.round((new Date() - updated) / 86400000);
+      if(idleDays >= STALL_NO_ACTIVITY_DAYS){
+        return { reason: 'No update in ' + idleDays + 'd', daysOverdue: idleDays };
+      }
+    }
+  }
+  return null;
+}
+function getStalledDeals(){
+  return state.data.filter(r => stalledInfo(r) !== null);
+}
+function statusClass(s){ return "badge-" + s.replace(/[\s\/]/g,''); }
+function uid(){ return 'op-' + Date.now() + '-' + Math.random().toString(36).slice(2,8); }
+
+// ---------- edit/delete permission ----------
+// Only the deal's assigned Presales Owner (sa1) or the manager may edit or delete it.
+// This is also enforced server-side in Apps Script — this check is just for the UI
+// (hiding buttons, blocking drag) so people aren't shown actions they can't actually do.
+function canEditRecord(rec){
+  if(!currentUser) return false;
+  return currentUser.name === rec.sa1 || currentUser.name === MANAGER_NAME;
+}
+
+// ---------- fuzzy duplicate detection ----------
+// Lightweight Dice's coefficient (bigram overlap) similarity — no external library needed.
+// Used only as a soft warning when adding a NEW deal, comparing client name + requirement
+// text against existing open deals, to catch near-duplicate entries typed slightly
+// differently by two different owners.
+function normalizeForCompare_(s){ return (s||'').toLowerCase().replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim(); }
+function bigrams_(s){ const arr=[]; for(let i=0;i<s.length-1;i++) arr.push(s.substring(i,i+2)); return arr; }
+function diceSimilarity(a,b){
+  a = normalizeForCompare_(a); b = normalizeForCompare_(b);
+  if(!a || !b) return 0;
+  if(a === b) return 1;
+  const bgA = bigrams_(a), bgB = bigrams_(b);
+  if(!bgA.length || !bgB.length) return 0;
+  const counts = {};
+  bgB.forEach(bg => { counts[bg] = (counts[bg]||0) + 1; });
+  let matches = 0;
+  bgA.forEach(bg => { if(counts[bg] > 0){ matches++; counts[bg]--; } });
+  return (2 * matches) / (bgA.length + bgB.length);
+}
+const DUPLICATE_SIMILARITY_THRESHOLD = 0.72;
+function findPossibleDuplicates(client, requirement, excludeId){
+  const skip = ['Lost','Declined/No-Bid','Not Given/Cancelled']; // clearly dead — not worth warning about
+  return state.data
+    .filter(r => r.id !== excludeId && !skip.includes(r.status))
+    .map(r => {
+      const clientSim = diceSimilarity(client, r.client);
+      const reqSim = diceSimilarity(requirement, r.requirement);
+      const combined = (requirement && r.requirement) ? (0.6*clientSim + 0.4*reqSim) : clientSim;
+      return { rec: r, score: combined };
+    })
+    .filter(x => x.score >= DUPLICATE_SIMILARITY_THRESHOLD)
+    .sort((a,b) => b.score - a.score)
+    .slice(0, 3);
+}
+function escapeHtml(s){
+  if(s===null||s===undefined) return '';
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function timeAgo(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  if(isNaN(d)) return '';
+  const mins = Math.round((Date.now()-d)/60000);
+  if(mins < 1) return 'just now';
+  if(mins < 60) return mins+'m ago';
+  const hrs = Math.round(mins/60);
+  if(hrs < 24) return hrs+'h ago';
+  const days = Math.round(hrs/24);
+  return days+'d ago';
+}
+
+// ---------- storage (Google Sheets via Apps Script Web App) ----------
+const FIELD_ORDER = ["id","potId","dateReceived","type","sector","client","requirement","refNo",
+  "preBidDate","submissionDate","sa1","sa2","estValue","challenges","status","wonValue","remarks",
+  "updatedBy","updatedAt","_seq","tcv","contractMonths","acv","supportPartner","contractUnit","otcCost"];
+let pollTimer = null;
+let isSyncing = false;
+
+async function fetchRows(){
+  const res = await fetch(SHEETS_API_URL, { method: 'GET' });
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const rows = await res.json();
+  // coerce numeric fields back from strings (Sheets returns everything as text/number mixed)
+  const numOrNull = v => (v === '' || v === null || v === undefined) ? null : Number(v);
+  return rows.map(r=>({
+    ...r,
+    estValue: numOrNull(r.estValue),
+    wonValue: numOrNull(r.wonValue),
+    tcv: numOrNull(r.tcv),
+    contractMonths: numOrNull(r.contractMonths),
+    acv: numOrNull(r.acv),
+    _seq: Number(r._seq) || 0,
+  }));
+}
+
+async function loadData(){
+  if(SHEETS_API_URL.includes('PASTE_YOUR')){
+    document.getElementById('lastSync').textContent = "Set SHEETS_API_URL at the top of the file to your Apps Script Web App URL first";
+    state.data = SEED_DATA;
+    populateFilterAndFormOptions();
+    render();
+    return;
+  }
+  try{
+    let rows = await fetchRows();
+    if(rows.length === 0){
+      // first run — seed the sheet with the original tracker data
+      await fetch(SHEETS_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'seed', records: SEED_DATA }),
+      });
+      rows = SEED_DATA;
+      document.getElementById('lastSync').textContent = "Shared tracker initialised with " + rows.length + " opportunities from the original sheet";
+    } else {
+      document.getElementById('lastSync').textContent = "Shared tracker · " + rows.length + " opportunities · synced with Google Sheets (updates every ~10s)";
+    }
+    state.data = rows.sort((a,b)=> (b._seq||0) - (a._seq||0));
+    populateFilterAndFormOptions();
+    render();
+  }catch(e){
+    document.getElementById('lastSync').textContent = "Could not reach Google Sheets — check SHEETS_API_URL and that the Apps Script is deployed";
+    console.error(e);
+    return;
+  }
+  if(!pollTimer){
+    pollTimer = setInterval(async ()=>{
+      if(isSyncing) return;
+      try{
+        const rows = await fetchRows();
+        state.data = rows.sort((a,b)=> (b._seq||0) - (a._seq||0));
+        document.getElementById('lastSync').textContent = "Shared tracker · " + state.data.length + " opportunities · synced with Google Sheets (updates every ~10s)";
+        populateFilterAndFormOptions();
+        render();
+      }catch(e){ console.error('poll failed', e); }
+    }, 10000);
+  }
+}
+async function persistRecord(rec){
+  if(!currentUser){ openLoginModal(); return false; }
+  // Optimistic: update the UI immediately, sync to Sheets in the background.
+  // This is what makes Save/drag feel instant instead of waiting on a round-trip to Google.
+  const idx = state.data.findIndex(r=>r.id===rec.id);
+  const previous = idx > -1 ? state.data[idx] : null;
+  if(idx > -1) state.data[idx] = rec; else state.data.unshift(rec);
+  render();
+  isSyncing = true;
+  try{
+    const res = await fetch(SHEETS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'upsert', record: rec, name: currentUser.name, pin: currentUser.pin }),
+    });
+    const data = await res.json();
+    if(!data.success){
+      // Roll back the optimistic change — the server rejected it (e.g. permission denied),
+      // so the UI shouldn't keep showing an edit that never actually saved.
+      if(idx > -1 && previous) state.data[idx] = previous;
+      else if(idx === -1) state.data = state.data.filter(r=>r.id!==rec.id);
+      render();
+      if(data.error === 'Invalid login'){
+        toast('Your login expired — please log in again');
+        logOut();
+      } else {
+        toast(data.error || "Couldn't sync to Google Sheets");
+      }
+    }
+  }catch(e){ toast("Saved locally, but couldn't sync to Google Sheets — check connection"); console.error(e); }
+  isSyncing = false;
+  return true;
+}
+async function deleteRecord(id){
+  if(!currentUser){ openLoginModal(); return false; }
+  isSyncing = true;
+  try{
+    const res = await fetch(SHEETS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'delete', id: id, name: currentUser.name, pin: currentUser.pin }),
+    });
+    const data = await res.json();
+    if(!data.success){
+      if(data.error === 'Invalid login'){
+        toast('Your login expired — please log in again');
+        logOut();
+      } else {
+        toast(data.error || "Couldn't sync delete to Google Sheets");
+      }
+      isSyncing = false;
+      return false;
+    }
+    state.data = state.data.filter(r=>r.id!==id);
+  }catch(e){ toast("Couldn't sync delete to Google Sheets"); console.error(e); isSyncing = false; return false; }
+  isSyncing = false;
+  return true;
+}
+
+// ---------- login ----------
+let currentUser = null;
+try{
+  const stored = localStorage.getItem('rfp-tracker-user');
+  if(stored) currentUser = JSON.parse(stored);
+}catch(e){ currentUser = null; }
+
+function updateWhoUI(){
+  const wrap = document.getElementById('whoWrap');
+  if(currentUser){
+    wrap.innerHTML = `<div class="signed-in-pill"><span class="dot"></span><span>Signed in as</span><span class="name">${escapeHtml(currentUser.name)}</span></div><button class="btn btn-ghost" id="logoutBtn">Log out</button>`;
+    document.getElementById('logoutBtn').addEventListener('click', logOut);
+  } else {
+    wrap.innerHTML = `<button class="btn btn-primary" id="loginBtn">Log in</button>`;
+    document.getElementById('loginBtn').addEventListener('click', openLoginModal);
+  }
+}
+function requireLogin(){
+  if(currentUser) return true;
+  openLoginModal();
+  return false;
+}
+function openLoginModal(){
+  document.getElementById('login_name').innerHTML = '<option value="">Select your name</option>' + OWNERS.map(o=>`<option value="${o}">${o}</option>`).join('');
+  document.getElementById('login_pin').value = '';
+  document.getElementById('loginError').classList.remove('show');
+  document.getElementById('loginOverlay').classList.add('open');
+}
+function closeLoginModal(){ document.getElementById('loginOverlay').classList.remove('open'); }
+async function attemptLogin(){
+  const name = document.getElementById('login_name').value;
+  const pin = document.getElementById('login_pin').value.trim();
+  const errEl = document.getElementById('loginError');
+  if(!name || !pin){ errEl.textContent = 'Pick your name and enter your PIN.'; errEl.classList.add('show'); return; }
+  try{
+    const res = await fetch(SHEETS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'login', name, pin }),
+    });
+    const data = await res.json();
+    if(data.success){
+      currentUser = { name, pin };
+      localStorage.setItem('rfp-tracker-user', JSON.stringify(currentUser));
+      updateWhoUI();
+      closeLoginModal();
+      toast('Signed in as ' + name);
+    } else {
+      errEl.textContent = "That name/PIN combination isn't right. Try again, or ask Bhagwat for your PIN.";
+      errEl.classList.add('show');
+    }
+  }catch(e){
+    errEl.textContent = 'Could not reach the login service — check your connection.';
+    errEl.classList.add('show');
+  }
+}
+function logOut(){
+  currentUser = null;
+  localStorage.removeItem('rfp-tracker-user');
+  updateWhoUI();
+}
+
+// ---------- change PIN ----------
+function openChangePinModal(){
+  closeLoginModal();
+  document.getElementById('cp_name').innerHTML = '<option value="">Select your name</option>' + OWNERS.map(o=>`<option value="${o}">${o}</option>`).join('');
+  if(currentUser) document.getElementById('cp_name').value = currentUser.name;
+  document.getElementById('cp_old').value = '';
+  document.getElementById('cp_new1').value = '';
+  document.getElementById('cp_new2').value = '';
+  document.getElementById('changePinError').classList.remove('show');
+  document.getElementById('changePinSuccess').style.display = 'none';
+  document.getElementById('changePinOverlay').classList.add('open');
+}
+function closeChangePinModal(){ document.getElementById('changePinOverlay').classList.remove('open'); }
+async function attemptChangePin(){
+  const name = document.getElementById('cp_name').value;
+  const oldPin = document.getElementById('cp_old').value.trim();
+  const newPin1 = document.getElementById('cp_new1').value.trim();
+  const newPin2 = document.getElementById('cp_new2').value.trim();
+  const errEl = document.getElementById('changePinError');
+  const okEl = document.getElementById('changePinSuccess');
+  errEl.classList.remove('show'); okEl.style.display = 'none';
+  if(!name || !oldPin || !newPin1 || !newPin2){
+    errEl.textContent = 'Fill in your name, current PIN, and new PIN twice.'; errEl.classList.add('show'); return;
+  }
+  if(!/^\d{4,8}$/.test(newPin1)){
+    errEl.textContent = 'New PIN must be 4–8 digits, numbers only.'; errEl.classList.add('show'); return;
+  }
+  if(newPin1 !== newPin2){
+    errEl.textContent = "New PIN and confirmation don't match."; errEl.classList.add('show'); return;
+  }
+  try{
+    const res = await fetch(SHEETS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'changePin', name, oldPin, newPin: newPin1 }),
+    });
+    const data = await res.json();
+    if(data.success){
+      okEl.style.display = 'block';
+      // If the user who just changed their PIN is currently logged in, refresh their stored session pin.
+      if(currentUser && currentUser.name === name){
+        currentUser.pin = newPin1;
+        localStorage.setItem('rfp-tracker-user', JSON.stringify(currentUser));
+      }
+      toast('PIN updated for ' + name);
+    } else {
+      errEl.textContent = data.error || "Couldn't update PIN — check your current PIN and try again.";
+      errEl.classList.add('show');
+    }
+  }catch(e){
+    errEl.textContent = 'Could not reach the login service — check your connection.';
+    errEl.classList.add('show');
+  }
+}
+document.getElementById('loginForgotBtn').addEventListener('click', openChangePinModal);
+document.getElementById('changePinCancelBtn').addEventListener('click', closeChangePinModal);
+document.getElementById('changePinSubmitBtn').addEventListener('click', attemptChangePin);
+document.getElementById('changePinOverlay').addEventListener('click', (e)=>{ if(e.target.id==='changePinOverlay') closeChangePinModal(); });
+document.getElementById('duplicateCancelBtn').addEventListener('click', closeDuplicateWarning);
+document.getElementById('duplicateConfirmBtn').addEventListener('click', confirmSaveDespiteDuplicate);
+document.getElementById('duplicateOverlay').addEventListener('click', (e)=>{ if(e.target.id==='duplicateOverlay') closeDuplicateWarning(); });
+document.getElementById('loginCancelBtn').addEventListener('click', closeLoginModal);
+document.getElementById('loginSubmitBtn').addEventListener('click', attemptLogin);
+document.getElementById('login_pin').addEventListener('keydown', (e)=>{ if(e.key==='Enter') attemptLogin(); });
+document.getElementById('loginOverlay').addEventListener('click', (e)=>{ if(e.target.id==='loginOverlay') closeLoginModal(); });
+
+// ---------- options ----------
+function populateFilterAndFormOptions(){
+  document.getElementById('ownerList').innerHTML = OWNERS.map(o=>`<option value="${o}">`).join('');
+
+  // Capture current selections BEFORE rebuilding, so a background refresh (polling, or
+  // right after a save) doesn't wipe out a selection someone is actively making in an open form.
+  const prevFilterOwner = document.getElementById('filterOwner').value;
+  const prevFilterStatus = document.getElementById('filterStatus').value;
+  const prevFilterType = document.getElementById('filterType').value;
+  const prevFilterSector = document.getElementById('filterSector').value;
+  const prevSa1 = getOwnerField('f_sa1');
+  const prevSa2 = getOwnerField('f_sa2');
+  const prevSupportPartner = document.getElementById('f_supportPartner').value;
+
+  const fo = document.getElementById('filterOwner');
+  const allPresalesHistoric = new Set(OWNERS);
+  const allSalesHistoric = new Set(SALES_PEOPLE);
+  state.data.forEach(r=>{ if(r.sa1) allPresalesHistoric.add(r.sa1); if(r.sa2) allSalesHistoric.add(r.sa2); });
+  const allPeople = new Set([...allPresalesHistoric, ...allSalesHistoric]);
+  fo.innerHTML = '<option value="">All owners</option>' + [...allPeople].sort().map(o=>`<option value="${o}">${o}</option>`).join('');
+
+  document.getElementById('filterStatus').innerHTML = '<option value="">All statuses</option>' + ALL_STATUSES.map(s=>`<option value="${s}">${s}</option>`).join('');
+  document.getElementById('filterType').innerHTML = '<option value="">All types</option>' + TYPES.map(t=>`<option value="${t}">${t}</option>`).join('');
+  document.getElementById('filterSector').innerHTML = '<option value="">All sectors</option>' + SECTORS.map(s=>`<option value="${s}">${s}</option>`).join('');
+
+  // New/edit entry dropdowns intentionally use ONLY the current active roster (not historical names),
+  // so someone removed from the team (e.g. Vishal Patra) can't be picked for new opportunities,
+  // while their past records remain visible and filterable in history above.
+  const presalesOptionsHtml = OWNERS.map(o=>`<option value="${o}">${o}</option>`).join('') + '<option value="__other__">Other (type name)</option>';
+  const salesOptionsHtml = SALES_PEOPLE.map(o=>`<option value="${o}">${o}</option>`).join('') + '<option value="__other__">Other (type name)</option>';
+  document.getElementById('f_sa1').innerHTML = '<option value="">Select owner</option>' + presalesOptionsHtml;
+  document.getElementById('f_sa2').innerHTML = '<option value="">None</option>' + salesOptionsHtml;
+  document.getElementById('f_supportPartner').innerHTML = '<option value="">None</option>' + OWNERS.map(o=>`<option value="${o}">${o}</option>`).join('');
+
+  // Restore whatever was selected before the rebuild.
+  restoreSelectValue_('filterOwner', prevFilterOwner);
+  restoreSelectValue_('filterStatus', prevFilterStatus);
+  restoreSelectValue_('filterType', prevFilterType);
+  restoreSelectValue_('filterSector', prevFilterSector);
+  setOwnerField('f_sa1', prevSa1);
+  setOwnerField('f_sa2', prevSa2);
+  restoreSelectValue_('f_supportPartner', prevSupportPartner);
+  populatePeriodFilter();
+}
+function populatePeriodFilter(){
+  const sel = document.getElementById('periodFilter');
+  if(!sel) return;
+  const prev = sel.value;
+  const years = new Set([new Date().getFullYear()]);
+  state.data.forEach(r=>{
+    const iso = parseDateFlexible(r.dateReceived);
+    if(iso) years.add(Number(iso.slice(0,4)));
+  });
+  const sortedYears = [...years].sort((a,b)=>b-a);
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const quarterLabels = ['Jan\u2013Mar','Apr\u2013Jun','Jul\u2013Sep','Oct\u2013Dec'];
+  let html = '<option value="all">All Time</option>';
+  sortedYears.forEach(y=>{
+    html += `<optgroup label="Quarters ${y}">`;
+    for(let q=1; q<=4; q++){
+      html += `<option value="quarter:${y}-Q${q}">Q${q} ${y} (${quarterLabels[q-1]})</option>`;
+    }
+    html += `</optgroup><optgroup label="Months ${y}">`;
+    for(let m=1; m<=12; m++){
+      html += `<option value="month:${y}-${String(m).padStart(2,'0')}">${monthNames[m-1]} ${y}</option>`;
+    }
+    html += `</optgroup>`;
+  });
+  sel.innerHTML = html;
+  restoreSelectValue_('periodFilter', prev || 'all');
+}
+function getPeriodRange(){
+  const sel = document.getElementById('periodFilter');
+  const val = sel ? sel.value : 'all';
+  if(!val || val === 'all') return null;
+  if(val.startsWith('month:')){
+    const [y,m] = val.slice(6).split('-').map(Number);
+    return { start: new Date(y, m-1, 1), end: new Date(y, m, 0, 23,59,59), monthKeys: [`${y}-${String(m).padStart(2,'0')}`] };
+  }
+  if(val.startsWith('quarter:')){
+    const [yStr,qStr] = val.slice(8).split('-Q');
+    const y = Number(yStr), q = Number(qStr);
+    const startMonth = (q-1)*3;
+    const monthKeys = [0,1,2].map(i=>`${y}-${String(startMonth+i+1).padStart(2,'0')}`);
+    return { start: new Date(y, startMonth, 1), end: new Date(y, startMonth+3, 0, 23,59,59), monthKeys };
+  }
+  return null;
+}
+function getPeriodFilteredData(){
+  const range = getPeriodRange();
+  if(!range) return state.data;
+  return state.data.filter(r=>{
+    const iso = parseDateFlexible(r.dateReceived);
+    if(!iso) return false;
+    const d = new Date(iso + 'T00:00:00');
+    return d >= range.start && d <= range.end;
+  });
+}
+function restoreSelectValue_(id, value){
+  const el = document.getElementById(id);
+  if(value && [...el.options].some(o=>o.value === value)) el.value = value;
+}
+function toggleOther(fieldId){
+  const sel = document.getElementById(fieldId);
+  document.getElementById(fieldId + '_other_wrap').style.display = sel.value === '__other__' ? 'block' : 'none';
+}
+function populateStatusOptions(preferredStatus){
+  const typeVal = document.getElementById('f_type').value;
+  const isPresentation = typeVal === 'Presentation/Workshop';
+  const options = isPresentation ? PRESENTATION_STATUSES : STATUSES;
+  const sel = document.getElementById('f_status');
+  sel.innerHTML = options.map(s=>`<option value="${s}">${s}</option>`).join('');
+  sel.value = (preferredStatus && options.includes(preferredStatus)) ? preferredStatus : options[0];
+}
+function onTypeChange(){
+  // Presentation/Workshop entries only track Completed vs Not Given/Cancelled — not the RFP pipeline stages.
+  populateStatusOptions(document.getElementById('f_status').value);
+}
+function calcACV(tcv, period, unit){
+  if(!tcv) return null;
+  unit = unit || 'One Time';
+  if(unit === 'One Time' || unit === 'Days') return tcv; // both are treated as-is — no annualising
+  if(!period || period <= 0) return null;
+  if(unit === 'Months') return (tcv * 12) / period;
+  if(unit === 'Year') return tcv / period;
+  return null;
+}
+function recalcACV(){
+  const tcv = Number(document.getElementById('f_tcv').value) || 0;
+  const unit = document.getElementById('f_contractUnit').value;
+  const period = Number(document.getElementById('f_contractMonths').value) || 0;
+  const acv = calcACV(tcv, period, unit);
+  document.getElementById('f_acv').value = acv !== null ? fmtMoney(acv) + ' / year' :
+    ((unit === 'One Time' || unit === 'Days') ? '— fill TCV' : '— fill TCV and contract period');
+}
+function onContractUnitChange(){
+  const unit = document.getElementById('f_contractUnit').value;
+  document.getElementById('f_contractPeriod_wrap').style.display = (unit === 'One Time') ? 'none' : 'block';
+  document.getElementById('f_otcCost_wrap').style.display = (unit === 'Months' || unit === 'Year') ? 'block' : 'none';
+  recalcACV();
+}
+
+// ---------- filtering / sorting ----------
+function getFiltered(){
+  const q = document.getElementById('searchBox').value.trim().toLowerCase();
+  const fs = document.getElementById('filterStatus').value;
+  const ft = document.getElementById('filterType').value;
+  const fsec = document.getElementById('filterSector').value;
+  const fo = document.getElementById('filterOwner').value;
+  const periodRange = getPeriodRange();
+  let rows = state.data.filter(r=>{
+    if(hiddenIds.has(r.id)) return false;
+    if(fs && r.status !== fs) return false;
+    if(ft && r.type !== ft) return false;
+    if(fsec && r.sector !== fsec) return false;
+    if(fo && r.sa1 !== fo && r.sa2 !== fo) return false;
+    if(periodRange){
+      const iso = parseDateFlexible(r.dateReceived);
+      if(!iso) return false;
+      const d = new Date(iso + 'T00:00:00');
+      if(d < periodRange.start || d > periodRange.end) return false;
+    }
+    if(q){
+      const hay = [r.client, r.potId, r.requirement, r.refNo, r.sa1, r.sa2, r.remarks].join(' ').toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  rows.sort((a,b)=>{
+    let av, bv;
+    if(state.sortKey === 'daysOpen'){ av = daysOpen(a) ?? -1; bv = daysOpen(b) ?? -1; }
+    else if(state.sortKey === 'estValue'){ av = a.estValue ?? -1; bv = b.estValue ?? -1; }
+    else if(state.sortKey === 'tcv'){ av = a.tcv ?? -1; bv = b.tcv ?? -1; }
+    else if(state.sortKey === 'acv'){ av = a.acv ?? -1; bv = b.acv ?? -1; }
+    else if(state.sortKey === 'submissionDate'){ av = parseDateFlexible(a.submissionDate) || '0000'; bv = parseDateFlexible(b.submissionDate) || '0000'; }
+    else if(state.sortKey === 'owners'){ av = (a.sa1||''); bv = (b.sa1||''); }
+    else { av = (a[state.sortKey]||'').toString().toLowerCase(); bv = (b[state.sortKey]||'').toString().toLowerCase(); }
+    if(av < bv) return state.sortDir === 'asc' ? -1 : 1;
+    if(av > bv) return state.sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  return rows;
+}
+
+// ---------- render: stats / charts ----------
+function render(){
+  renderStats();
+  renderWorkloadChart();
+  renderSubmittedChart();
+  renderDeadlinePanel();
+  renderStalledPanel();
+  renderWonByOwnerChart();
+  renderACVTCVChart();
+  renderPresentationChart();
+  if(state.view === 'table') renderTable();
+  else if(state.view === 'board') renderBoard();
+  else if(state.view === 'dashboard') renderDashboard();
+}
+function renderStats(){
+  const active = state.data.filter(r=>!CLOSED_STATUSES.includes(r.status));
+  const won = state.data.filter(r=>r.status==='Won');
+  const closed = state.data.filter(r=>CLOSED_STATUSES.includes(r.status));
+  const live = state.data.filter(r=>!LOST_LIKE_STATUSES.includes(r.status));
+  const pipelineValue = active.reduce((s,r)=>s+(Number(r.estValue)||0),0);
+  const wonValue = won.reduce((s,r)=>s+(Number(r.wonValue ?? r.estValue)||0),0);
+  const winRate = closed.length ? Math.round((won.length/closed.length)*100) : 0;
+  const totalTCV = live.reduce((s,r)=>s+(Number(r.tcv)||0),0);
+  const totalACV = live.reduce((s,r)=>s+(Number(r.acv)||0),0);
+  const stats = [
+    {label:'Total Opportunities', value: state.data.length, sub: active.length + ' active', accent:true},
+    {label:'Active Pipeline Value', value: fmtMoney(pipelineValue), sub: active.length + ' open deals'},
+    {label:'Won Value', value: fmtMoney(wonValue), sub: won.length + ' won'},
+    {label:'Win Rate', value: winRate + '%', sub: closed.length + ' closed'},
+    {label:'In Progress', value: state.data.filter(r=>r.status==='In Progress').length, sub: 'needs attention'},
+    {label:'Total TCV', value: fmtMoney(totalTCV), sub: 'active + won deals'},
+    {label:'Total ACV', value: fmtMoney(totalACV), sub: 'annualised run-rate'},
+  ];
+  document.getElementById('statsRow').innerHTML = stats.map(s=>`
+    <div class="stat ${s.accent?'accent':''}">
+      <div class="label">${s.label}</div>
+      <div class="value">${s.value}</div>
+      <div class="sub">${s.sub}</div>
+    </div>`).join('');
+}
+function renderWorkloadChart(){
+  const active = state.data.filter(r=>r.status==='In Progress');
+  const counts = {};
+  active.forEach(r=>{ if(r.sa1) counts[r.sa1] = (counts[r.sa1]||0)+1; });
+  const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const max = entries.length ? entries[0][1] : 1;
+  const el = document.getElementById('workloadChart');
+  if(!entries.length){ el.innerHTML = '<div class="no-deadlines">No in-progress deals assigned yet.</div>'; return; }
+  el.innerHTML = entries.map(([name,count])=>`
+    <div class="bar-row">
+      <div class="bname">${escapeHtml(name)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(count/max*100).toFixed(0)}%"></div></div>
+      <div class="bar-count">${count}</div>
+    </div>`).join('');
+}
+function renderSubmittedChart(){
+  const submitted = state.data.filter(r=>r.status==='Submitted');
+  const counts = {};
+  submitted.forEach(r=>{ if(r.sa1) counts[r.sa1] = (counts[r.sa1]||0)+1; });
+  const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const max = entries.length ? entries[0][1] : 1;
+  const el = document.getElementById('submittedChart');
+  if(!entries.length){ el.innerHTML = '<div class="no-deadlines">No submitted deals yet.</div>'; return; }
+  el.innerHTML = entries.map(([name,count])=>`
+    <div class="bar-row">
+      <div class="bname">${escapeHtml(name)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(count/max*100).toFixed(0)}%;background:linear-gradient(90deg,var(--blue),#1c3f5c);"></div></div>
+      <div class="bar-count">${count}</div>
+    </div>`).join('');
+}
+function renderWonByOwnerChart(){
+  const won = state.data.filter(r=>r.status==='Won');
+  const counts = {};
+  won.forEach(r=>{ if(r.sa1) counts[r.sa1] = (counts[r.sa1]||0)+1; });
+  const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const max = entries.length ? entries[0][1] : 1;
+  const el = document.getElementById('wonByOwnerChart');
+  if(!entries.length){ el.innerHTML = '<div class="no-deadlines">No won opportunities yet.</div>'; return; }
+  el.innerHTML = entries.map(([name,count])=>`
+    <div class="bar-row">
+      <div class="bname">${escapeHtml(name)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(count/max*100).toFixed(0)}%;background:linear-gradient(90deg,var(--green),#166339);"></div></div>
+      <div class="bar-count">${count}</div>
+    </div>`).join('');
+}
+function renderACVTCVChart(){
+  const live = state.data.filter(r=>!LOST_LIKE_STATUSES.includes(r.status));
+  const acvByOwner = {}, tcvByOwner = {};
+  live.forEach(r=>{
+    if(r.sa1 && r.acv) acvByOwner[r.sa1] = (acvByOwner[r.sa1]||0) + Number(r.acv);
+    if(r.sa1 && r.tcv) tcvByOwner[r.sa1] = (tcvByOwner[r.sa1]||0) + Number(r.tcv);
+  });
+  const el = document.getElementById('acvTcvChart');
+  const acvEntries = Object.entries(acvByOwner).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const tcvEntries = Object.entries(tcvByOwner).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  if(!acvEntries.length && !tcvEntries.length){
+    el.innerHTML = '<div class="no-deadlines">No TCV/ACV entered yet — add Contract Value and Contract Period on an opportunity to see this.</div>';
+    return;
+  }
+  const acvMax = acvEntries.length ? acvEntries[0][1] : 1;
+  const tcvMax = tcvEntries.length ? tcvEntries[0][1] : 1;
+  let html = '';
+  if(acvEntries.length){
+    html += '<div class="subhead">ACV by Owner</div>' + acvEntries.map(([name,val])=>`
+      <div class="bar-row">
+        <div class="bname">${escapeHtml(name)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(val/acvMax*100).toFixed(0)}%"></div></div>
+        <div class="bar-count" style="width:auto;font-size:10.5px;">${fmtMoney(val)}</div>
+      </div>`).join('');
+  }
+  if(tcvEntries.length){
+    html += '<div class="subhead">TCV by Owner</div>' + tcvEntries.map(([name,val])=>`
+      <div class="bar-row">
+        <div class="bname">${escapeHtml(name)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(val/tcvMax*100).toFixed(0)}%;background:linear-gradient(90deg,var(--gold),var(--orange-dark));"></div></div>
+        <div class="bar-count" style="width:auto;font-size:10.5px;">${fmtMoney(val)}</div>
+      </div>`).join('');
+  }
+  el.innerHTML = html;
+}
+function renderPresentationChart(){
+  const presentations = state.data.filter(r=>r.type==='Presentation/Workshop');
+  const counts = {};
+  presentations.forEach(r=>{ if(r.sa1) counts[r.sa1] = (counts[r.sa1]||0)+1; });
+  const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const max = entries.length ? entries[0][1] : 1;
+  const el = document.getElementById('presentationChart');
+  if(!entries.length){ el.innerHTML = '<div class="no-deadlines">No presentations/workshops logged yet.</div>'; return; }
+  el.innerHTML = entries.map(([name,count])=>`
+    <div class="bar-row">
+      <div class="bname">${escapeHtml(name)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(count/max*100).toFixed(0)}%;background:linear-gradient(90deg,var(--blue),#1c3f5c);"></div></div>
+      <div class="bar-count">${count}</div>
+    </div>`).join('');
+}
+
+// ---------- Grafana-style dashboard ----------
+let dashCharts = {};
+function destroyChart_(key){
+  if(dashCharts[key]){ dashCharts[key].destroy(); delete dashCharts[key]; }
+}
+function monthKey_(dateStr){
+  const iso = parseDateFlexible(dateStr);
+  if(!iso) return null;
+  return iso.slice(0,7);
+}
+function monthLabel_(key){
+  const [y,m] = key.split('-');
+  const d = new Date(Number(y), Number(m)-1, 1);
+  return d.toLocaleDateString('en-US',{month:'short', year:'2-digit'});
+}
+function lastNMonthKeys_(n){
+  const keys = [];
+  const now = new Date();
+  for(let i=n-1;i>=0;i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    keys.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));
+  }
+  return keys;
+}
+function renderDashboard(){
+  const liveStatus = document.getElementById('dashLiveStatus');
+  if(typeof Chart === 'undefined'){
+    if(liveStatus) liveStatus.innerHTML = '<span style="color:var(--dash-red);">⚠ Charts library failed to load — check your internet connection, or your network may be blocking cdnjs.cloudflare.com / cdn.jsdelivr.net</span>';
+    return;
+  }
+  if(liveStatus) liveStatus.innerHTML = '<span class="pulse"></span> Live · synced with Google Sheets';
+  Chart.defaults.color = '#8B93A7';
+  Chart.defaults.borderColor = '#262B38';
+  Chart.defaults.font.family = "'Inter', sans-serif";
+
+  const periodRange = getPeriodRange();
+  const data = getPeriodFilteredData();
+
+  const active = data.filter(r=>!CLOSED_STATUSES.includes(r.status));
+  const won = data.filter(r=>r.status==='Won');
+  const closed = data.filter(r=>CLOSED_STATUSES.includes(r.status));
+  const live = data.filter(r=>!LOST_LIKE_STATUSES.includes(r.status));
+  const pipelineValue = active.reduce((s,r)=>s+(Number(r.estValue)||0),0);
+  const wonValue = won.reduce((s,r)=>s+(Number(r.wonValue ?? r.estValue)||0),0);
+  const totalTCV = live.reduce((s,r)=>s+(Number(r.tcv)||0),0);
+  const totalACV = live.reduce((s,r)=>s+(Number(r.acv)||0),0);
+  const winRate = closed.length ? Math.round((won.length/closed.length)*100) : 0;
+
+  document.getElementById('dashPipelineValue').textContent = fmtMoney(pipelineValue);
+  document.getElementById('dashPipelineSub').textContent = active.length + ' active opportunities';
+  document.getElementById('dashWonValue').textContent = fmtMoney(wonValue);
+  document.getElementById('dashWonSub').textContent = won.length + ' deals won';
+  document.getElementById('dashTcvAcv').textContent = fmtMoney(totalTCV) + ' / ' + fmtMoney(totalACV);
+  document.getElementById('dashTcvAcvSub').textContent = 'TCV / ACV, active + won';
+  document.getElementById('dashWinRateNum').textContent = winRate + '%';
+
+  destroyChart_('winRate');
+  dashCharts.winRate = new Chart(document.getElementById('chartWinRate'), {
+    type: 'doughnut',
+    data: { datasets: [{ data: [winRate, 100-winRate], backgroundColor: ['#3DD68C', '#262B38'], borderWidth: 0 }] },
+    options: { cutout: '75%', rotation: -90, circumference: 180,
+      plugins: { legend: {display:false}, tooltip:{enabled:false} },
+      responsive: true, maintainAspectRatio: false }
+  });
+
+  const statusCounts = {};
+  ALL_STATUSES.forEach(s=>statusCounts[s]=0);
+  data.forEach(r=>{ const s = r.status || 'Not Started'; statusCounts[s] = (statusCounts[s]||0)+1; });
+  const statusColors = { 'Not Started':'#8B93A7','In Progress':'#F5B942','Submitted':'#4C9FFE','Won':'#3DD68C','Lost':'#F4615B','Declined/No-Bid':'#A78BFA','Completed':'#3DD68C','Not Given/Cancelled':'#F4615B' };
+  destroyChart_('statusDonut');
+  dashCharts.statusDonut = new Chart(document.getElementById('chartStatusDonut'), {
+    type: 'doughnut',
+    data: { labels: Object.keys(statusCounts), datasets: [{ data: Object.values(statusCounts), backgroundColor: Object.keys(statusCounts).map(s=>statusColors[s]), borderWidth:0 }] },
+    options: { plugins: { legend: { position:'bottom', labels:{boxWidth:10, padding:10, font:{size:10.5}} } }, responsive:true, maintainAspectRatio:false }
+  });
+
+  const typeCounts = {};
+  data.forEach(r=>{ const t = r.type || 'Other'; typeCounts[t] = (typeCounts[t]||0)+1; });
+  destroyChart_('typeDonut');
+  dashCharts.typeDonut = new Chart(document.getElementById('chartTypeDonut'), {
+    type:'doughnut',
+    data:{ labels:Object.keys(typeCounts), datasets:[{data:Object.values(typeCounts), backgroundColor:['#4C9FFE','#3DD68C','#F5B942','#A78BFA','#F4615B'], borderWidth:0}]},
+    options:{ plugins:{legend:{position:'bottom', labels:{boxWidth:10,padding:10,font:{size:10.5}}}}, responsive:true, maintainAspectRatio:false }
+  });
+
+  const sectorCounts = {};
+  data.forEach(r=>{ if(r.sector) sectorCounts[r.sector] = (sectorCounts[r.sector]||0)+1; });
+  destroyChart_('sectorDonut');
+  dashCharts.sectorDonut = new Chart(document.getElementById('chartSectorDonut'), {
+    type:'doughnut',
+    data:{ labels:Object.keys(sectorCounts), datasets:[{data:Object.values(sectorCounts), backgroundColor:['#4C9FFE','#3DD68C','#F5B942','#A78BFA','#F4615B','#8B93A7','#E4874F'], borderWidth:0}]},
+    options:{ plugins:{legend:{position:'bottom', labels:{boxWidth:10,padding:10,font:{size:9.5}}}}, responsive:true, maintainAspectRatio:false }
+  });
+
+  const months = periodRange ? periodRange.monthKeys : lastNMonthKeys_(6);
+  const trendTitle = periodRange ? 'Opportunities Received (selected period)' : 'Opportunities Received (last 6 months)';
+  const trendTitleEl = document.querySelector('#chartReceivedTrend').closest('.dash-panel').querySelector('h4');
+  if(trendTitleEl) trendTitleEl.textContent = trendTitle;
+  const receivedByMonth = {};
+  months.forEach(m=>receivedByMonth[m]=0);
+  data.forEach(r=>{ const mk = monthKey_(r.dateReceived); if(mk && receivedByMonth.hasOwnProperty(mk)) receivedByMonth[mk]++; });
+  destroyChart_('receivedTrend');
+  dashCharts.receivedTrend = new Chart(document.getElementById('chartReceivedTrend'), {
+    type:'line',
+    data:{ labels: months.map(monthLabel_), datasets:[{ label:'Opportunities Received', data: months.map(m=>receivedByMonth[m]),
+      borderColor:'#4C9FFE', backgroundColor:'rgba(76,159,254,0.15)', fill:true, tension:0.35, pointRadius:3, pointBackgroundColor:'#4C9FFE' }] },
+    options:{ plugins:{ legend:{display:false} }, scales:{ y:{beginAtZero:true, ticks:{precision:0}} }, responsive:true, maintainAspectRatio:false }
+  });
+
+  const wonByMonth = {};
+  months.forEach(m=>wonByMonth[m]=0);
+  won.forEach(r=>{ const mk = monthKey_(r.submissionDate || r.updatedAt); if(mk && wonByMonth.hasOwnProperty(mk)) wonByMonth[mk] += Number(r.wonValue ?? r.estValue) || 0; });
+  destroyChart_('wonTrend');
+  dashCharts.wonTrend = new Chart(document.getElementById('chartWonTrend'), {
+    type:'bar',
+    data:{ labels: months.map(monthLabel_), datasets:[{ label:'Won Value', data: months.map(m=>wonByMonth[m]), backgroundColor:'#3DD68C', borderRadius:4, maxBarThickness:36 }] },
+    options:{ plugins:{ legend:{display:false}, tooltip:{callbacks:{label:(ctx)=>fmtMoney(ctx.parsed.y)}} },
+      scales:{ y:{beginAtZero:true, ticks:{callback:(v)=>fmtMoney(v)}} }, responsive:true, maintainAspectRatio:false }
+  });
+
+  const ownerValue = {};
+  active.forEach(r=>{ if(r.sa1) ownerValue[r.sa1] = (ownerValue[r.sa1]||0) + (Number(r.estValue)||0); });
+  const ownerEntries = Object.entries(ownerValue).sort((a,b)=>b[1]-a[1]).slice(0,9);
+  destroyChart_('ownerValue');
+  dashCharts.ownerValue = new Chart(document.getElementById('chartOwnerValue'), {
+    type:'bar',
+    data:{ labels: ownerEntries.map(e=>e[0]), datasets:[{ data: ownerEntries.map(e=>e[1]), backgroundColor:'#4C9FFE', borderRadius:4 }] },
+    options:{ indexAxis:'y', plugins:{ legend:{display:false}, tooltip:{callbacks:{label:(ctx)=>fmtMoney(ctx.parsed.x)}} },
+      scales:{ x:{beginAtZero:true, ticks:{callback:(v)=>fmtMoney(v)}} }, responsive:true, maintainAspectRatio:false }
+  });
+
+  const acvByOwner = {}, tcvByOwner = {};
+  live.forEach(r=>{
+    if(r.sa1 && r.acv) acvByOwner[r.sa1] = (acvByOwner[r.sa1]||0) + Number(r.acv);
+    if(r.sa1 && r.tcv) tcvByOwner[r.sa1] = (tcvByOwner[r.sa1]||0) + Number(r.tcv);
+  });
+  const ownerNames = [...new Set([...Object.keys(acvByOwner), ...Object.keys(tcvByOwner)])]
+    .sort((a,b)=>(tcvByOwner[b]||0)-(tcvByOwner[a]||0)).slice(0,7);
+  destroyChart_('acvTcvOwner');
+  dashCharts.acvTcvOwner = new Chart(document.getElementById('chartAcvTcvOwner'), {
+    type:'bar',
+    data:{ labels: ownerNames, datasets:[
+      { label:'ACV', data: ownerNames.map(n=>acvByOwner[n]||0), backgroundColor:'#A78BFA', borderRadius:3 },
+      { label:'TCV', data: ownerNames.map(n=>tcvByOwner[n]||0), backgroundColor:'#F5B942', borderRadius:3 },
+    ]},
+    options:{ plugins:{ legend:{position:'bottom', labels:{boxWidth:10,padding:10,font:{size:10.5}}}, tooltip:{callbacks:{label:(ctx)=>ctx.dataset.label+': '+fmtMoney(ctx.parsed.y)}} },
+      scales:{ y:{beginAtZero:true, ticks:{callback:(v)=>fmtMoney(v)}}, x:{ticks:{font:{size:9.5}}} }, responsive:true, maintainAspectRatio:false }
+  });
+}
+
+function renderDeadlinePanel(){
+  const withDeadline = state.data
+    .filter(r=>!CLOSED_STATUSES.includes(r.status))
+    .map(r=>({rec:r, days:nearestDeadlineDays(r)}))
+    .filter(x=>x.days !== null)
+    .sort((a,b)=>a.days-b.days)
+    .slice(0,6);
+  const el = document.getElementById('deadlinePanel');
+  if(!withDeadline.length){ el.innerHTML = '<div class="no-deadlines">No upcoming pre-bid or submission dates on active deals.</div>'; return; }
+  el.innerHTML = withDeadline.map(({rec,days})=>{
+    const tag = days<=3 ? '<span class="urgent-tag urgent-red">'+(days===0?'Today':days+'d')+'</span>'
+              : days<=7 ? '<span class="urgent-tag urgent-amber">'+days+'d</span>'
+              : '<span class="days">'+days+'d</span>';
+    return `<div class="deadline-item"><span class="dl-client">${escapeHtml(rec.client)}</span>${tag}</div>`;
+  }).join('');
+}
+
+function renderStalledPanel(){
+  const stalled = getStalledDeals()
+    .map(r=>({rec:r, info:stalledInfo(r)}))
+    .sort((a,b)=>b.info.daysOverdue-a.info.daysOverdue)
+    .slice(0,6);
+  const el = document.getElementById('stalledPanel');
+  if(!stalled.length){ el.innerHTML = '<div class="no-deadlines">Nothing stalled right now — good shape!</div>'; return; }
+  el.innerHTML = stalled.map(({rec,info})=>
+    `<div class="deadline-item"><span class="dl-client">${escapeHtml(rec.client)} <span style="color:var(--muted);font-weight:400;">(${escapeHtml(rec.sa1||'Unassigned')})</span></span><span class="urgent-tag urgent-red">${escapeHtml(info.reason)}</span></div>`
+  ).join('');
+}
+
+// ---------- render: table ----------
+function renderTable(){
+  const rows = getFiltered();
+  const tbody = document.getElementById('tbody');
+  const empty = document.getElementById('emptyState');
+  document.querySelectorAll('thead th[data-key]').forEach(th=>{
+    th.classList.toggle('sorted', th.dataset.key === state.sortKey);
+  });
+  if(rows.length === 0){ tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = rows.map(r=>{
+    const dOpen = daysOpen(r);
+    const nd = nearestDeadlineDays(r);
+    const urgencyClass = nd !== null && nd <= 3 ? 'urgent-r' : (nd !== null && nd <= 7 ? 'soon-r' : '');
+    const stalled = stalledInfo(r);
+    return `
+    <tr class="${urgencyClass}">
+      <td class="td-client">${escapeHtml(r.client)}<div class="sub">${escapeHtml(r.requirement||'')}${r.potId ? ' · <span class="pot">'+escapeHtml(r.potId)+'</span>' : ''}</div></td>
+      <td><span class="type-tag">${escapeHtml(r.type||'—')}</span></td>
+      <td><span class="type-tag">${escapeHtml(r.sector||'—')}</span></td>
+      <td class="owners">${escapeHtml(r.sa1||'—')}${r.sa2 ? '<div class="sa2">+ '+escapeHtml(r.sa2)+'</div>' : ''}${r.supportPartner ? '<div class="sa2">Support: '+escapeHtml(r.supportPartner)+'</div>' : ''}</td>
+      <td><span class="badge ${statusClass(r.status||'Not Started')}">${escapeHtml(r.status||'Not Started')}</span>${stalled ? `<div class="stalled-tag" title="${escapeHtml(stalled.reason)}">⚠ Stalled</div>` : ''}</td>
+      <td class="money">${fmtMoney(r.status==='Won' ? (r.wonValue ?? r.estValue) : r.estValue)}</td>
+      <td class="money">${fmtMoney(r.tcv)}</td>
+      <td class="money">${fmtMoney(r.acv)}</td>
+      <td class="days">${fmtDate(parseDateFlexible(r.submissionDate))}</td>
+      <td class="days">${dOpen !== null ? dOpen + ' d' : '—'}</td>
+      <td class="remarks-cell">${escapeHtml(r.remarks||'')}</td>
+      <td class="updated-cell">${r.updatedBy ? escapeHtml(r.updatedBy)+'<br>'+timeAgo(r.updatedAt) : '—'}</td>
+      <td>
+        <div class="row-actions">
+          ${canEditRecord(r) ? `
+          <button class="icon-btn" onclick="editRow('${r.id}')" title="Edit">✎</button>
+          <button class="icon-btn" onclick="deleteRow('${r.id}')" title="Delete">✕</button>
+          ` : `<span class="icon-btn" style="cursor:default;" title="Only ${escapeHtml(r.sa1||'the assigned owner')} or ${escapeHtml(MANAGER_NAME)} can edit this">🔒</span>`}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ---------- render: board ----------
+function renderBoard(){
+  const rows = getFiltered();
+  const wrap = document.getElementById('boardWrap');
+  wrap.innerHTML = STATUSES.map(status=>{
+    const items = rows.filter(r=>(r.status||'Not Started')===status);
+    return `
+    <div class="board-col" data-status="${status}" ondragover="onColDragOver(event,this)" ondragleave="onColDragLeave(this)" ondrop="onColDrop(event,'${status}',this)">
+      <div class="board-col-head"><span>${status}</span><span class="cnt">${items.length}</span></div>
+      ${items.map(r=>{
+        const stalled = stalledInfo(r);
+        const editable = canEditRecord(r);
+        return `
+        <div class="board-card" draggable="${editable}" ondragstart="onCardDragStart(event,'${r.id}')" ondragend="onCardDragEnd(this)" onclick="editRow('${r.id}')" style="${editable ? '' : 'cursor:default;'}">
+          <div class="bc-client">${escapeHtml(r.client)}${stalled ? `<span class="stalled-tag" style="margin-left:6px;" title="${escapeHtml(stalled.reason)}">⚠ Stalled</span>` : ''}${!editable ? `<span style="margin-left:6px;" title="Only ${escapeHtml(r.sa1||'the assigned owner')} or ${escapeHtml(MANAGER_NAME)} can edit this">🔒</span>` : ''}</div>
+          <div class="bc-req">${escapeHtml(r.requirement||'')}</div>
+          <div class="bc-meta"><span class="bc-owner">${escapeHtml(r.sa1||'Unassigned')}</span><span>${escapeHtml(r.type||'')}</span></div>
+          <div class="bc-value">${fmtMoney(r.status==='Won' ? (r.wonValue ?? r.estValue) : r.estValue)}</div>
+        </div>`;
+      }).join('') || '<div class="no-deadlines">Nothing here</div>'}
+    </div>`;
+  }).join('');
+}
+window.onCardDragStart = function(e, id){ state.dragId = id; e.target.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; };
+window.onCardDragEnd = function(el){ el.classList.remove('dragging'); };
+window.onColDragOver = function(e, col){ e.preventDefault(); col.classList.add('dragover'); };
+window.onColDragLeave = function(col){ col.classList.remove('dragover'); };
+window.onColDrop = function(e, status, col){
+  e.preventDefault();
+  col.classList.remove('dragover');
+  if(!state.dragId) return;
+  if(!requireLogin()){ state.dragId = null; return; }
+  const rec = state.data.find(r=>r.id===state.dragId);
+  if(rec && !canEditRecord(rec)){
+    toast('Only ' + (rec.sa1 || 'the assigned owner') + ' or ' + MANAGER_NAME + ' can move this deal');
+    state.dragId = null;
+    return;
+  }
+  if(rec && rec.status !== status){
+    const updated = Object.assign({}, rec, {
+      status: status,
+      updatedBy: currentUser.name,
+      updatedAt: new Date().toISOString(),
+    });
+    persistRecord(updated); // fires in the background — UI updates instantly inside persistRecord
+    toast(rec.client + ' moved to ' + status);
+  }
+  state.dragId = null;
+};
+
+// ---------- CRUD ----------
+function openModal(rec){
+  if(!requireLogin()) return;
+  state.editingId = rec ? rec.id : null;
+  document.getElementById('modalTitle').textContent = rec ? 'Edit Opportunity' : 'New Opportunity';
+  const f = id => document.getElementById(id);
+  f('f_client').value = rec?.client || '';
+  f('f_requirement').value = rec?.requirement || '';
+  f('f_type').value = rec?.type || 'RFP';
+  f('f_sector').value = rec?.sector || 'Government/PSU';
+  populateStatusOptions(rec?.status);
+  f('f_potId').value = rec?.potId || '';
+  f('f_refNo').value = rec?.refNo || '';
+  f('f_dateReceived').value = rec ? (parseDateFlexible(rec.dateReceived)||'') : '';
+  f('f_preBidDate').value = rec ? (parseDateFlexible(rec.preBidDate)||'') : '';
+  f('f_submissionDate').value = rec ? (parseDateFlexible(rec.submissionDate)||'') : '';
+  f('f_wonValue').value = rec?.wonValue ?? '';
+  f('f_tcv').value = rec?.tcv ?? '';
+  f('f_contractUnit').value = rec?.contractUnit || 'One Time';
+  f('f_contractMonths').value = rec?.contractMonths ?? '';
+  f('f_otcCost').value = rec?.otcCost ?? '';
+  document.getElementById('f_contractPeriod_wrap').style.display = (f('f_contractUnit').value === 'One Time') ? 'none' : 'block';
+  document.getElementById('f_otcCost_wrap').style.display = (f('f_contractUnit').value === 'Months' || f('f_contractUnit').value === 'Year') ? 'block' : 'none';
+  f('f_challenges').value = rec?.challenges || '';
+  f('f_remarks').value = rec?.remarks || '';
+
+  // Presales Owner defaults to whoever's logged in for a new entry, but is freely
+  // editable — logging entries on a teammate's behalf is allowed.
+  setOwnerField('f_sa1', rec?.sa1 || currentUser.name);
+  setOwnerField('f_sa2', rec?.sa2 || '');
+  f('f_supportPartner').value = rec?.supportPartner || '';
+  recalcACV();
+
+  document.getElementById('overlay').classList.add('open');
+  f('f_client').focus();
+}
+function closeModal(){ document.getElementById('overlay').classList.remove('open'); }
+function setOwnerField(fieldId, name){
+  const sel = document.getElementById(fieldId);
+  const otherInput = document.getElementById(fieldId + '_other');
+  const wrap = document.getElementById(fieldId + '_other_wrap');
+  if(!name){ sel.value = ''; wrap.style.display = 'none'; otherInput.value=''; return; }
+  const opt = [...sel.options].find(o=>o.value === name);
+  if(opt){ sel.value = name; wrap.style.display = 'none'; otherInput.value=''; }
+  else { sel.value = '__other__'; wrap.style.display = 'block'; otherInput.value = name; }
+}
+function getOwnerField(fieldId){
+  const sel = document.getElementById(fieldId);
+  if(sel.value === '__other__') return document.getElementById(fieldId + '_other').value.trim();
+  return sel.value;
+}
+
+async function saveRow(){
+  if(!requireLogin()) return;
+  const f = id => document.getElementById(id).value.trim();
+  const client = f('f_client');
+  if(!client){ toast('Client / Project name is required'); return; }
+  const sa1 = getOwnerField('f_sa1');
+  if(!sa1){ toast('Presales Owner is required'); return; }
+  const existing = state.editingId ? state.data.find(r=>r.id===state.editingId) : null;
+  const requirement = f('f_requirement');
+  const rec = {
+    id: state.editingId || uid(),
+    potId: f('f_potId'),
+    dateReceived: f('f_dateReceived'),
+    type: f('f_type'),
+    sector: f('f_sector'),
+    client: client,
+    requirement: requirement,
+    refNo: f('f_refNo'),
+    preBidDate: f('f_preBidDate'),
+    submissionDate: f('f_submissionDate'),
+    sa1: sa1,
+    sa2: getOwnerField('f_sa2'),
+    challenges: f('f_challenges'),
+    status: f('f_status'),
+    wonValue: f('f_wonValue') ? Number(f('f_wonValue')) : null,
+    remarks: f('f_remarks'),
+    supportPartner: f('f_supportPartner'),
+    tcv: f('f_tcv') ? Number(f('f_tcv')) : null,
+    contractUnit: document.getElementById('f_contractUnit').value,
+    contractMonths: f('f_contractMonths') ? Number(f('f_contractMonths')) : null,
+    otcCost: (document.getElementById('f_contractUnit').value === 'Months' || document.getElementById('f_contractUnit').value === 'Year') && f('f_otcCost') ? Number(f('f_otcCost')) : null,
+    acv: calcACV(f('f_tcv') ? Number(f('f_tcv')) : null, f('f_contractMonths') ? Number(f('f_contractMonths')) : null, document.getElementById('f_contractUnit').value),
+    estValue: f('f_tcv') ? Number(f('f_tcv')) : null,
+    updatedBy: currentUser.name,
+    updatedAt: new Date().toISOString(),
+    _seq: existing ? (existing._seq || Date.now()) : Date.now(),
+  };
+
+  // Only check for duplicates when adding a brand-new deal — not when editing one.
+  if(!state.editingId){
+    const matches = findPossibleDuplicates(client, requirement, rec.id);
+    if(matches.length){
+      openDuplicateWarning(matches, rec);
+      return; // wait for the user's choice in the warning modal
+    }
+  }
+  finalizeSaveRow(rec);
+}
+
+function finalizeSaveRow(rec){
+  closeModal();
+  toast(state.editingId ? 'Opportunity updated' : 'Opportunity added');
+  persistRecord(rec); // fires in the background — persistRecord already updates the UI instantly
+}
+
+let pendingDuplicateRec = null;
+function openDuplicateWarning(matches, rec){
+  pendingDuplicateRec = rec;
+  document.getElementById('duplicateList').innerHTML = matches.map(({rec:m,score}) =>
+    `<div class="dup-item">
+      <div class="dup-client">${escapeHtml(m.client)}</div>
+      <div class="dup-meta">${escapeHtml(m.requirement||'—')}</div>
+      <div class="dup-meta">Owner: ${escapeHtml(m.sa1||'—')} · Status: ${escapeHtml(m.status||'—')} · ${Math.round(score*100)}% similar</div>
+    </div>`
+  ).join('');
+  document.getElementById('duplicateOverlay').classList.add('open');
+}
+function closeDuplicateWarning(){
+  document.getElementById('duplicateOverlay').classList.remove('open');
+  pendingDuplicateRec = null;
+}
+function confirmSaveDespiteDuplicate(){
+  const rec = pendingDuplicateRec;
+  closeDuplicateWarning();
+  if(rec) finalizeSaveRow(rec);
+}
+
+window.editRow = function(id){
+  const rec = state.data.find(r=>r.id===id);
+  if(!rec) return;
+  if(!requireLogin()) return;
+  if(!canEditRecord(rec)){
+    toast('Only ' + (rec.sa1 || 'the assigned owner') + ' or ' + MANAGER_NAME + ' can edit this opportunity');
+    return;
+  }
+  openModal(rec);
+};
+window.deleteRow = function(id){
+  if(!requireLogin()) return;
+  const rec = state.data.find(r=>r.id===id);
+  if(!rec) return;
+  if(!canEditRecord(rec)){
+    toast('Only ' + (rec.sa1 || 'the assigned owner') + ' or ' + MANAGER_NAME + ' can delete this opportunity');
+    return;
+  }
+  pendingDelete = { id, rec };
+  hiddenIds.add(id);
+  render();
+  toast('Deleted "' + rec.client + '"', restoreDelete);
+};
+async function finalizeDelete(){
+  if(!pendingDelete) return;
+  const id = pendingDelete.id;
+  pendingDelete = null;
+  hiddenIds.delete(id);
+  await deleteRecord(id);
+}
+function restoreDelete(){
+  if(!pendingDelete) return;
+  hiddenIds.delete(pendingDelete.id);
+  pendingDelete = null;
+  render();
+  document.getElementById('toast').classList.remove('show');
+}
+
+// ---------- export ----------
+function exportCSV(){
+  const cols = ['potId','dateReceived','type','sector','client','requirement','refNo','preBidDate','submissionDate','sa1','sa2','supportPartner','estValue','tcv','contractUnit','contractMonths','otcCost','acv','status','wonValue','challenges','remarks'];
+  const header = ['POT ID','Date Received','Type','Sector','Client','Requirement','Ref No','Pre-Bid Date','Submission Date','Presales Owner','Sales Person','Supporting Partner','Est Value','TCV','Contract Unit','Contract Period','One Time Infra Cost','ACV','Status','Won Value','Challenges','Remarks'];
+  const rows = getFiltered().map(r=>cols.map(c=>{
+    let v = r[c] ?? '';
+    v = String(v).replace(/"/g,'""');
+    return `"${v}"`;
+  }).join(','));
+  const csv = [header.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'rfp_tracker_export_' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('CSV exported (' + rows.length + ' rows)');
+}
+
+// ---------- events ----------
+document.getElementById('newBtn').addEventListener('click', ()=>openModal(null));
+document.getElementById('cancelBtn').addEventListener('click', closeModal);
+document.getElementById('saveBtn').addEventListener('click', saveRow);
+document.getElementById('exportBtn').addEventListener('click', exportCSV);
+document.getElementById('overlay').addEventListener('click', (e)=>{ if(e.target.id==='overlay') closeModal(); });
+document.getElementById('searchBox').addEventListener('input', render);
+document.getElementById('filterStatus').addEventListener('change', render);
+document.getElementById('filterType').addEventListener('change', render);
+document.getElementById('filterSector').addEventListener('change', render);
+document.getElementById('filterOwner').addEventListener('change', render);
+document.getElementById('clearFiltersBtn').addEventListener('click', ()=>{
+  document.getElementById('searchBox').value = '';
+  document.getElementById('filterStatus').value = '';
+  document.getElementById('filterType').value = '';
+  document.getElementById('filterSector').value = '';
+  document.getElementById('filterOwner').value = '';
+  document.getElementById('periodFilter').value = 'all';
+  render();
+});
+document.querySelectorAll('thead th[data-key]').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const key = th.dataset.key;
+    if(state.sortKey === key){ state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc'; }
+    else { state.sortKey = key; state.sortDir = 'asc'; }
+    render();
+  });
+});
+document.getElementById('viewTableBtn').addEventListener('click', ()=>{
+  state.view = 'table';
+  document.getElementById('viewTableBtn').classList.add('active');
+  document.getElementById('viewBoardBtn').classList.remove('active');
+  document.getElementById('viewDashboardBtn').classList.remove('active');
+  document.getElementById('tableView').style.display = 'block';
+  document.getElementById('boardView').style.display = 'none';
+  document.getElementById('dashboardView').style.display = 'none';
+  render();
+});
+document.getElementById('viewBoardBtn').addEventListener('click', ()=>{
+  state.view = 'board';
+  document.getElementById('viewBoardBtn').classList.add('active');
+  document.getElementById('viewTableBtn').classList.remove('active');
+  document.getElementById('viewDashboardBtn').classList.remove('active');
+  document.getElementById('tableView').style.display = 'none';
+  document.getElementById('boardView').style.display = 'block';
+  document.getElementById('dashboardView').style.display = 'none';
+  render();
+});
+document.getElementById('viewDashboardBtn').addEventListener('click', ()=>{
+  state.view = 'dashboard';
+  document.getElementById('viewDashboardBtn').classList.add('active');
+  document.getElementById('viewTableBtn').classList.remove('active');
+  document.getElementById('viewBoardBtn').classList.remove('active');
+  document.getElementById('tableView').style.display = 'none';
+  document.getElementById('boardView').style.display = 'none';
+  document.getElementById('dashboardView').style.display = 'block';
+  render();
+});
+document.getElementById('periodFilter').addEventListener('change', render);
+
+// ---------- init ----------
+updateWhoUI();
+loadData();
+</script>
+</body>
+</html>
