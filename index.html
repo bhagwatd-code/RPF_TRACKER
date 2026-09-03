@@ -276,6 +276,9 @@
 <!-- Chart.js is embedded directly here (not loaded from a CDN) so the Dashboard
      tab works even on networks that block external script CDNs. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.1/chart.umd.min.js"></script>
+<!-- ExcelJS builds the real, styled .xlsx KRA report on export (merged headers, colors,
+     multiple sheets, live formulas) — a plain CSV can't represent that format. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 </head>
 <body>
 <div class="app-layout">
@@ -343,7 +346,7 @@
       <button id="viewDashboardBtn">Dashboard</button>
     </div>
     <button class="btn btn-ghost" id="clearFiltersBtn">Clear filters</button>
-    <button class="btn btn-ghost" id="exportBtn">Export CSV</button>
+    <button class="btn btn-ghost" id="exportBtn">Export KRA Report</button>
     <button class="btn btn-primary" id="newBtn">+ New Opportunity</button>
   </div>
 
@@ -1873,30 +1876,251 @@ function restoreDelete(){
   document.getElementById('toast').classList.remove('show');
 }
 
-// ---------- export ----------
-function exportCSV(){
-  const cols = ['potId','dateReceived','type','sector','client','requirement','refNo','preBidDate','submissionDate','sa1','sa2','supportPartner','estValue','tcv','contractUnit','contractMonths','otcCost','acv','status','wonValue','challenges','remarks'];
-  const header = ['POT ID','Date Received','Type','Sector','Client','Requirement','Ref No','Pre-Bid Date','Submission Date','Presales Owner','Sales Person','Supporting Partner','Est Value','TCV','Contract Unit','Contract Period','One Time Infra Cost','ACV','Status','Won Value','Challenges','Remarks'];
-  const rows = getFiltered().map(r=>cols.map(c=>{
-    let v = r[c] ?? '';
-    v = String(v).replace(/"/g,'""');
-    return `"${v}"`;
-  }).join(','));
-  const csv = [header.join(','), ...rows].join('\n');
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+// ---------- export: KRA Report (matches the official Presales Dept KRA format) ----------
+const KRA_SUBMITTED_STATUSES = ['Submitted','Won','Lost','Declined/No-Bid'];
+const KRA_LOST_STATUSES = ['Lost','Declined/No-Bid'];
+
+function kraSanitizeSheetName(name){
+  // Excel sheet names: max 31 chars, no : \ / ? * [ ]
+  return (name || 'Unassigned').replace(/[:\\\/\?\*\[\]]/g, '').slice(0, 31) || 'Sheet';
+}
+function kraMonthLabel(dateStr){
+  const iso = parseDateFlexible(dateStr);
+  if(!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  if(isNaN(d)) return '';
+  return d.toLocaleDateString('en-US', {month:'short', year:'numeric'});
+}
+function kraContractPeriodLabel(rec){
+  if(!rec.contractUnit || rec.contractUnit === 'One Time') return 'One Time';
+  if(rec.contractUnit === 'Days') return (rec.contractMonths || '') + ' Days';
+  if(!rec.contractMonths) return rec.contractUnit;
+  return rec.contractMonths + ' ' + rec.contractUnit;
+}
+function kraHeaderStyle(cell, opts){
+  opts = opts || {};
+  cell.font = { name:'Arial', bold:true, size: opts.size || 10, color:{argb: opts.color || 'FFFFFFFF'} };
+  cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb: opts.fill || 'FF002060'} };
+  cell.alignment = { horizontal:'center', vertical:'middle', wrapText:true };
+  cell.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} };
+}
+function kraDataCellBorder(cell){
+  cell.border = { top:{style:'hair'}, bottom:{style:'hair'}, left:{style:'hair'}, right:{style:'hair'} };
+  cell.font = { name:'Arial', size:10 };
+}
+
+async function exportKRAReport(){
+  if(typeof ExcelJS === 'undefined'){
+    toast("Report library failed to load — check your internet connection");
+    return;
+  }
+  const scoped = getFiltered(); // respects sidebar owner, search, status/type/sector, and period filters
+  if(!scoped.length){ toast('Nothing to export in the current view'); return; }
+
+  const ownerNames = [...new Set(scoped.map(r=>r.sa1).filter(Boolean))].sort();
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'SWARAJ Lakshya RFP Tracker';
+  wb.created = new Date();
+
+  // ===== Sheet: Finance Summary =====
+  const fs = wb.addWorksheet('Finance Summary');
+  fs.columns = [{width:3},{width:9},{width:22},{width:16},{width:14},{width:15},{width:16},
+    {width:12},{width:12},{width:11},{width:16},{width:12},{width:12},{width:9},{width:9},
+    {width:14},{width:20},{width:16}];
+  const fsGroups = [
+    ['B2:D2','Details'], ['E2:G2','Number of Tenders'], ['H2:I2','Amount of Proposals Submitted'],
+    ['J2:K2','Win / Lost Details'], ['L2:M2','Amount of Orders Received'],
+    ['N2:P2','Win / Lost Conversion Ratio'], ['Q2:R2','Other Activity'],
+  ];
+  fsGroups.forEach(([range, label])=>{
+    fs.mergeCells(range);
+    const cell = fs.getCell(range.split(':')[0]);
+    cell.value = label;
+    kraHeaderStyle(cell, {fill:'FF002060'});
+  });
+  const fsHeaders = ['','Sr. No','Employee Name','Number of Opportunities (Government/Enterprise)',
+    'Front End working','Back End Support','Number of Proposals submitted','ARC','TCV',
+    'Number of Wins','Number of Opportunities Lost','ARC','TCV','Qty','Amt','Lost Conversion ratio',
+    'Presentations/ Solution/ Workshop','Pre-Bid / Meeting'];
+  fsHeaders.forEach((h,i)=>{
+    if(i===0) return;
+    const cell = fs.getCell(3, i+1);
+    cell.value = h;
+    kraHeaderStyle(cell, {fill:'FF1F4E78'});
+  });
+
+  let fsRow = 4;
+  ownerNames.forEach((owner, idx)=>{
+    const mine = scoped.filter(r=>r.sa1===owner);
+    const submitted = mine.filter(r=>KRA_SUBMITTED_STATUSES.includes(r.status));
+    const won = mine.filter(r=>r.status==='Won');
+    const lost = mine.filter(r=>KRA_LOST_STATUSES.includes(r.status));
+    const backEnd = scoped.filter(r=>r.supportPartner===owner);
+    const arcSubmitted = submitted.reduce((s,r)=>s+(Number(r.acv)||0),0);
+    const tcvSubmitted = submitted.reduce((s,r)=>s+(Number(r.tcv)||0),0);
+    const arcWon = won.reduce((s,r)=>s+(Number(r.acv)||0),0);
+    const tcvWon = won.reduce((s,r)=>s+(Number(r.wonValue ?? r.tcv)||0),0);
+    const presentations = mine.filter(r=>r.type==='Presentation/Workshop').length;
+
+    const vals = ['', idx+1, owner, mine.length, mine.length, backEnd.length, submitted.length,
+      arcSubmitted, tcvSubmitted, won.length, lost.length, arcWon, tcvWon,
+      submitted.length ? won.length/submitted.length : 0,
+      arcSubmitted ? arcWon/arcSubmitted : 0,
+      submitted.length ? lost.length/submitted.length : 0,
+      presentations, 0];
+    vals.forEach((v,i)=>{
+      if(i===0) return;
+      const cell = fs.getCell(fsRow, i+1);
+      cell.value = v;
+      kraDataCellBorder(cell);
+      if([13,14,15].includes(i)) cell.numFmt = '0%';
+      if([7,8,11,12].includes(i)) cell.numFmt = '#,##0';
+    });
+    fsRow++;
+  });
+  fs.getCell('A1').value = 'Generated by SWARAJ Lakshya on ' + new Date().toLocaleDateString('en-GB');
+  fs.getCell('A1').font = {name:'Arial', size:8, italic:true, color:{argb:'FF888888'}};
+
+  // ===== Sheet: Won Opportunity =====
+  const wo = wb.addWorksheet('Won Opportunity');
+  wo.columns = [{width:3},{width:8},{width:12},{width:16},{width:14},{width:26},{width:34},
+    {width:16},{width:16},{width:14},{width:16},{width:16},{width:16}];
+  const woHeaders = ['','Sr No.','Month','POT ID','Sector','Opportunity Name',
+    'Scope of the Project/ Opportunity Description','TCV of Submitted Proposal ',
+    'TCV of  Orders Received ','Contract Period','ARC of Submitted Proposal',
+    'ARC of Received Proposal','Sales'];
+  woHeaders.forEach((h,i)=>{
+    if(i===0) return;
+    const cell = wo.getCell(1, i+1);
+    cell.value = h;
+    kraHeaderStyle(cell, {fill:'FF002060'});
+  });
+  const wonRows = scoped.filter(r=>r.status==='Won');
+  wonRows.forEach((r, idx)=>{
+    const vals = ['', idx+1, kraMonthLabel(r.dateReceived), r.potId||'', r.sector||'', r.client||'',
+      r.requirement||'', r.tcv||'', r.wonValue ?? r.tcv ?? '', kraContractPeriodLabel(r),
+      r.acv||'', r.acv||'', r.sa2||''];
+    vals.forEach((v,i)=>{
+      if(i===0) return;
+      const cell = wo.getCell(idx+2, i+1);
+      cell.value = v;
+      kraDataCellBorder(cell);
+    });
+  });
+
+  // ===== One sheet per owner: "Presales Member" detail (Lead By = owner) =====
+  const usedNames = new Set(['Finance Summary','Won Opportunity']);
+  ownerNames.forEach(owner=>{
+    let sheetName = kraSanitizeSheetName(owner);
+    while(usedNames.has(sheetName)) sheetName = sheetName.slice(0, 28) + '_2';
+    usedNames.add(sheetName);
+    const ws = wb.addWorksheet(sheetName);
+    ws.columns = [{width:8},{width:11},{width:12},{width:14},{width:26},{width:34},{width:16},
+      {width:14},{width:16},{width:16},{width:14},{width:18},{width:16},{width:14},{width:16},
+      {width:16},{width:16},{width:16},{width:14},{width:22}];
+    const headers = ['Sr No.','Month','POT ID','Sector','Opportunity Name',
+      'Scope of the Project/\nOpportunity Description','Opportunity Worked Upon',
+      'Proposal Submitted','Opportunities Converted into Orders','Opportunities Lost',
+      'Opportunity Lost Reason','TCV of Submitted Proposal ','TCV of  Orders Received ',
+      'Contract Period','ARC of Submitted Proposal','ARC of Received Proposal','Lead By',
+      'Supporting SA','Sales','Meetings done External/Internal'];
+    headers.forEach((h,i)=>{
+      const cell = ws.getCell(1, i+1);
+      cell.value = h;
+      kraHeaderStyle(cell, {fill:'FF002060'});
+    });
+
+    const mine = scoped.filter(r=>r.sa1===owner);
+    mine.forEach((r, idx)=>{
+      const rIdx = idx+2;
+      const isSubmitted = KRA_SUBMITTED_STATUSES.includes(r.status) ? 1 : 0;
+      const isWon = r.status==='Won' ? 1 : 0;
+      const isLost = KRA_LOST_STATUSES.includes(r.status) ? 1 : 0;
+      const vals = [idx+1, kraMonthLabel(r.dateReceived), r.potId||'', r.sector||'', r.client||'',
+        r.requirement||'', r.status||'', isSubmitted, isWon, isLost, '',
+        isSubmitted ? (r.tcv||'') : '', isWon ? (r.wonValue ?? r.tcv ?? '') : '',
+        kraContractPeriodLabel(r), isSubmitted ? (r.acv||'') : '', isWon ? (r.acv||'') : '',
+        r.sa1||'', r.supportPartner||'', r.sa2||'', ''];
+      vals.forEach((v,i)=>{
+        const cell = ws.getCell(rIdx, i+1);
+        cell.value = v;
+        kraDataCellBorder(cell);
+      });
+    });
+
+    // Totals row — real formulas, so Excel recalculates them live if the sheet is edited.
+    const totalsRow = mine.length + 2;
+    const lastDataRow = mine.length + 1;
+    if(mine.length){
+      ws.getCell(totalsRow, 8).value = { formula: `SUBTOTAL(103,H2:H${lastDataRow})` };
+      ws.getCell(totalsRow, 9).value = { formula: `SUM(I2:I${lastDataRow})` };
+      ws.getCell(totalsRow, 10).value = { formula: `SUM(J2:J${lastDataRow})` };
+      ws.getCell(totalsRow, 12).value = { formula: `SUM(L2:L${lastDataRow})` };
+      ws.getCell(totalsRow, 13).value = { formula: `SUM(M2:M${lastDataRow})` };
+      ws.getCell(totalsRow, 15).value = { formula: `SUM(O2:O${lastDataRow})` };
+      ws.getCell(totalsRow, 16).value = { formula: `SUM(P2:P${lastDataRow})` };
+      for(let c=1;c<=20;c++) ws.getCell(totalsRow, c).font = {name:'Arial', bold:true, size:10};
+    }
+
+    // Workshop / Presentation sub-table — pre-filled from Presentation/Workshop type entries.
+    const wsStart = totalsRow + 3;
+    ws.mergeCells(wsStart-1, 3, wsStart-1, 8);
+    const wsTitle = ws.getCell(wsStart-1, 3);
+    wsTitle.value = 'Workshop /New Solution / Presentation (Min. 03 Workshop / 01 New Solution conducted)';
+    kraHeaderStyle(wsTitle, {fill:'FF1F4E78'});
+    const wsHeaders = ['Sr. No','Date','Workshop & Solution','Project / Solution Name','','Description'];
+    wsHeaders.forEach((h,i)=>{
+      if(!h) return;
+      const cell = ws.getCell(wsStart, 3+i);
+      cell.value = h;
+      kraHeaderStyle(cell, {fill:'FF1F4E78'});
+    });
+    const presentations = mine.filter(r=>r.type==='Presentation/Workshop');
+    presentations.forEach((r, idx)=>{
+      const rIdx = wsStart + 1 + idx;
+      ws.getCell(rIdx, 3).value = idx+1; kraDataCellBorder(ws.getCell(rIdx,3));
+      ws.getCell(rIdx, 4).value = fmtDate(parseDateFlexible(r.dateReceived)); kraDataCellBorder(ws.getCell(rIdx,4));
+      ws.getCell(rIdx, 5).value = 'Presentation/Workshop'; kraDataCellBorder(ws.getCell(rIdx,5));
+      ws.getCell(rIdx, 6).value = r.client||''; kraDataCellBorder(ws.getCell(rIdx,6));
+      ws.getCell(rIdx, 8).value = r.requirement || r.remarks || ''; kraDataCellBorder(ws.getCell(rIdx,8));
+    });
+
+    // Training Sessions sub-table — nothing in the tracker records this; headers only,
+    // left blank for manual fill-in.
+    ws.mergeCells(wsStart-1, 11, wsStart-1, 17);
+    const trTitle = ws.getCell(wsStart-1, 11);
+    trTitle.value = 'Training Sessions (21 Hrs.)';
+    kraHeaderStyle(trTitle, {fill:'FF1F4E78'});
+    const trHeaders = ['Sr. No.','Month','Date','Session/Training/ Meetings','','Duration','Online/Offline'];
+    trHeaders.forEach((h,i)=>{
+      if(!h) return;
+      const cell = ws.getCell(wsStart, 11+i);
+      cell.value = h;
+      kraHeaderStyle(cell, {fill:'FF1F4E78'});
+    });
+    for(let i=1;i<=10;i++){
+      const cell = ws.getCell(wsStart+i, 11);
+      cell.value = i;
+      kraDataCellBorder(cell);
+    }
+  });
+
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'rfp_tracker_export_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.href = url; a.download = 'KRA_Report_Presales_' + new Date().toISOString().slice(0,10) + '.xlsx';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  toast('CSV exported (' + rows.length + ' rows)');
+  toast('KRA Report exported (' + ownerNames.length + ' owner' + (ownerNames.length===1?'':'s') + ', ' + scoped.length + ' opportunities)');
 }
+
 
 // ---------- events ----------
 document.getElementById('newBtn').addEventListener('click', ()=>openModal(null));
 document.getElementById('cancelBtn').addEventListener('click', closeModal);
 document.getElementById('saveBtn').addEventListener('click', saveRow);
-document.getElementById('exportBtn').addEventListener('click', exportCSV);
+document.getElementById('exportBtn').addEventListener('click', exportKRAReport);
 document.getElementById('overlay').addEventListener('click', (e)=>{ if(e.target.id==='overlay') closeModal(); });
 document.getElementById('searchBox').addEventListener('input', render);
 document.getElementById('filterStatus').addEventListener('change', render);
