@@ -603,7 +603,7 @@ const LOST_LIKE_STATUSES = ["Lost","Declined/No-Bid","Not Given/Cancelled"];
 const STORAGE_KEY = "rfp-tracker-opportunities";
 const MANAGER_NAME = "Yogesh Dusane";
 
-let state = { data: [], sortKey: "submissionDate", sortDir: "desc", editingId: null, view: "table", dragId: null };
+let state = { data: [], sortKey: "_seq", sortDir: "desc", editingId: null, view: "table", dragId: null };
 let pendingDelete = null;
 let hiddenIds = new Set();
 
@@ -1201,6 +1201,7 @@ function getFiltered(){
     else if(state.sortKey === 'estValue'){ av = a.estValue ?? -1; bv = b.estValue ?? -1; }
     else if(state.sortKey === 'tcv'){ av = a.tcv ?? -1; bv = b.tcv ?? -1; }
     else if(state.sortKey === 'acv'){ av = a.acv ?? -1; bv = b.acv ?? -1; }
+    else if(state.sortKey === '_seq'){ av = Number(a._seq) || 0; bv = Number(b._seq) || 0; }
     else if(state.sortKey === 'submissionDate'){ av = parseDateFlexible(a.submissionDate) || '0000'; bv = parseDateFlexible(b.submissionDate) || '0000'; }
     else if(state.sortKey === 'owners'){ av = (a.sa1||''); bv = (b.sa1||''); }
     else { av = (a[state.sortKey]||'').toString().toLowerCase(); bv = (b[state.sortKey]||'').toString().toLowerCase(); }
