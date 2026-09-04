@@ -1854,7 +1854,15 @@ async function uploadPOFile(){
         fileBase64: base64, fileName: file.name, mimeType: file.type,
       }),
     });
-    const data = await res.json();
+    const rawText = await res.text();
+    let data;
+    try{ data = JSON.parse(rawText); }
+    catch(parseErr){
+      alert('DEBUG — server did not return valid JSON.\n\nHTTP status: ' + res.status + '\n\nRaw response (first 1000 chars):\n' + rawText.slice(0,1000));
+      statusEl.textContent = '';
+      return;
+    }
+    alert('DEBUG — server response:\n\n' + JSON.stringify(data, null, 2));
     if(data.success){
       const updated = Object.assign({}, rec, {
         poFileUrl: data.poFileUrl, poFileName: data.poFileName,
@@ -1871,6 +1879,7 @@ async function uploadPOFile(){
     }
   }catch(e){
     statusEl.textContent = '';
+    alert('DEBUG — JavaScript error while uploading:\n\n' + (e.stack || e.message));
     toast('Could not upload the PO — check your connection');
     console.error(e);
   }
