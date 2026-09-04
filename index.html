@@ -1979,6 +1979,12 @@ async function saveRow(){
     updatedBy: currentUser.name,
     updatedAt: new Date().toISOString(),
     _seq: existing ? (existing._seq || Date.now()) : Date.now(),
+    // Carry these forward untouched — they're set only via the separate "Upload PO"
+    // action, not part of this form, so Save must never blank them out.
+    poFileUrl: existing ? (existing.poFileUrl || null) : null,
+    poFileName: existing ? (existing.poFileName || null) : null,
+    poUploadedBy: existing ? (existing.poUploadedBy || null) : null,
+    poUploadedAt: existing ? (existing.poUploadedAt || null) : null,
   };
 
   // Only check for duplicates when adding a brand-new deal — not when editing one.
