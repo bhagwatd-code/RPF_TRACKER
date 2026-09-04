@@ -957,6 +957,7 @@ async function persistRecord(rec){
   if(idx > -1) state.data[idx] = rec; else state.data.unshift(rec);
   render();
   isSyncing = true;
+  let saved = true;
   try{
     const res = await fetch(SHEETS_API_URL, {
       method: 'POST',
@@ -965,6 +966,7 @@ async function persistRecord(rec){
     });
     const data = await res.json();
     if(!data.success){
+      saved = false;
       // Roll back the optimistic change — the server rejected it (e.g. permission denied),
       // so the UI shouldn't keep showing an edit that never actually saved.
       if(idx > -1 && previous) state.data[idx] = previous;
@@ -977,9 +979,9 @@ async function persistRecord(rec){
         toast(data.error || "Couldn't sync to Google Sheets");
       }
     }
-  }catch(e){ toast("Saved locally, but couldn't sync to Google Sheets — check connection"); console.error(e); }
+  }catch(e){ saved = false; toast("Saved locally, but couldn't sync to Google Sheets — check connection"); console.error(e); }
   isSyncing = false;
-  return true;
+  return saved;
 }
 async function deleteRecord(id){
   if(!currentUser){ openLoginModal(); return false; }
@@ -1898,10 +1900,18 @@ async function uploadPOFile(){
       updatedBy: currentUser.name,
       updatedAt: new Date().toISOString(),
     });
-    await persistRecord(updated);
-    updatePOSection(updated);
+    const saved = await persistRecord(updated);
     statusEl.textContent = '';
-    toast('PO uploaded');
+    if(saved){
+      updatePOSection(updated);
+      toast('PO uploaded');
+    } else {
+      // persistRecord() already showed the real reason (e.g. a permission error) and
+      // rolled back — re-show the form for whatever the record's actual current state is,
+      // instead of falsely displaying the new PO as if it saved.
+      const current = state.data.find(r=>r.id===id) || rec;
+      updatePOSection(current);
+    }
   }catch(e){
     statusEl.textContent = '';
     toast('Could not upload the PO — check your connection');
