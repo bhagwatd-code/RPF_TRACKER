@@ -1825,18 +1825,32 @@ function updatePOSection(rec){
     document.getElementById('f_po_upload_btn').textContent = 'Upload PO';
   }
 }
+function debugShow_(msg){
+  let box = document.getElementById('debugBox');
+  if(!box){
+    box = document.createElement('div');
+    box.id = 'debugBox';
+    box.style.cssText = 'position:fixed;bottom:10px;right:10px;left:10px;max-height:50vh;overflow:auto;background:#111;color:#0f0;font-family:monospace;font-size:12px;padding:14px;border-radius:8px;z-index:99999;white-space:pre-wrap;border:3px solid red;';
+    document.body.appendChild(box);
+  }
+  box.style.display = 'block';
+  box.textContent = new Date().toLocaleTimeString() + '\n' + msg;
+}
+
 async function uploadPOFile(){
+  debugShow_('uploadPOFile() STARTED');
   const id = state.editingId;
-  if(!id){ toast('Save the opportunity first before uploading a PO'); return; }
-  if(!requireLogin()) return;
+  if(!id){ debugShow_('STOPPED: no state.editingId'); toast('Save the opportunity first before uploading a PO'); return; }
+  if(!requireLogin()){ debugShow_('STOPPED: requireLogin() failed'); return; }
   const rec = state.data.find(r=>r.id===id);
-  if(!rec){ toast('Could not find this opportunity'); return; }
-  if(!canEditRecord(rec)){ toast('Only ' + (rec.sa1||'the assigned owner') + ' or ' + MANAGER_NAME + ' can upload the PO for this opportunity'); return; }
+  if(!rec){ debugShow_('STOPPED: record not found for id ' + id); toast('Could not find this opportunity'); return; }
+  if(!canEditRecord(rec)){ debugShow_('STOPPED: canEditRecord() returned false. currentUser=' + (currentUser?currentUser.name:'none') + ' rec.sa1=' + rec.sa1); toast('Only ' + (rec.sa1||'the assigned owner') + ' or ' + MANAGER_NAME + ' can upload the PO for this opportunity'); return; }
   const fileInput = document.getElementById('f_po_file');
   const file = fileInput.files[0];
-  if(!file){ toast('Choose a PDF or Word file first'); return; }
-  if(file.size > 15*1024*1024){ toast('File is too large (max 15MB)'); return; }
+  if(!file){ debugShow_('STOPPED: no file selected in input'); toast('Choose a PDF or Word file first'); return; }
+  if(file.size > 15*1024*1024){ debugShow_('STOPPED: file too large, ' + file.size + ' bytes'); toast('File is too large (max 15MB)'); return; }
 
+  debugShow_('Guards passed. File: ' + file.name + ' (' + file.size + ' bytes). Reading as base64…');
   const statusEl = document.getElementById('f_po_status');
   statusEl.textContent = 'Uploading…';
   try{
@@ -1846,6 +1860,7 @@ async function uploadPOFile(){
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
+    debugShow_('Base64 read OK, length ' + base64.length + '. Sending to server:\n' + SHEETS_API_URL);
     const res = await fetch(SHEETS_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -1858,11 +1873,11 @@ async function uploadPOFile(){
     let data;
     try{ data = JSON.parse(rawText); }
     catch(parseErr){
-      alert('DEBUG — server did not return valid JSON.\n\nHTTP status: ' + res.status + '\n\nRaw response (first 1000 chars):\n' + rawText.slice(0,1000));
+      debugShow_('SERVER DID NOT RETURN JSON.\nHTTP status: ' + res.status + '\n\nRaw response (first 1500 chars):\n' + rawText.slice(0,1500));
       statusEl.textContent = '';
       return;
     }
-    alert('DEBUG — server response:\n\n' + JSON.stringify(data, null, 2));
+    debugShow_('SERVER RESPONSE:\n' + JSON.stringify(data, null, 2));
     if(data.success){
       const updated = Object.assign({}, rec, {
         poFileUrl: data.poFileUrl, poFileName: data.poFileName,
@@ -1879,7 +1894,7 @@ async function uploadPOFile(){
     }
   }catch(e){
     statusEl.textContent = '';
-    alert('DEBUG — JavaScript error while uploading:\n\n' + (e.stack || e.message));
+    debugShow_('JAVASCRIPT ERROR:\n' + (e.stack || e.message));
     toast('Could not upload the PO — check your connection');
     console.error(e);
   }
