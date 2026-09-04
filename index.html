@@ -279,6 +279,10 @@
   const SHEETS_READ_API_KEY = "AIzaSyCRF1go1JTJluALnTSwZxN_-o6C7fpQHLY";
   const SHEETS_SPREADSHEET_ID = "1A0tHtcZtIV7xzkn4o3kPuDJ7-m9L_GvLgGK5iPu5dXw";
   const SHEET_TAB_NAME = "Opportunities";
+  // PO document uploads go straight from the browser to Cloudinary (a free file host
+  // built for exactly this) instead of through Apps Script/Drive — much more reliable.
+  const CLOUDINARY_CLOUD_NAME = "ouf8eg7c";
+  const CLOUDINARY_UPLOAD_PRESET = "r131znml";
 </script>
 <!-- Chart.js is embedded directly here (not loaded from a CDN) so the Dashboard
      tab works even on networks that block external script CDNs. -->
@@ -1825,76 +1829,53 @@ function updatePOSection(rec){
     document.getElementById('f_po_upload_btn').textContent = 'Upload PO';
   }
 }
-function debugShow_(msg){
-  let box = document.getElementById('debugBox');
-  if(!box){
-    box = document.createElement('div');
-    box.id = 'debugBox';
-    box.style.cssText = 'position:fixed;bottom:10px;right:10px;left:10px;max-height:50vh;overflow:auto;background:#111;color:#0f0;font-family:monospace;font-size:12px;padding:14px;border-radius:8px;z-index:99999;white-space:pre-wrap;border:3px solid red;';
-    document.body.appendChild(box);
-  }
-  box.style.display = 'block';
-  box.textContent = new Date().toLocaleTimeString() + '\n' + msg;
-}
-
 async function uploadPOFile(){
-  debugShow_('uploadPOFile() STARTED');
   const id = state.editingId;
-  if(!id){ debugShow_('STOPPED: no state.editingId'); toast('Save the opportunity first before uploading a PO'); return; }
-  if(!requireLogin()){ debugShow_('STOPPED: requireLogin() failed'); return; }
+  if(!id){ toast('Save the opportunity first before uploading a PO'); return; }
+  if(!requireLogin()) return;
   const rec = state.data.find(r=>r.id===id);
-  if(!rec){ debugShow_('STOPPED: record not found for id ' + id); toast('Could not find this opportunity'); return; }
-  if(!canEditRecord(rec)){ debugShow_('STOPPED: canEditRecord() returned false. currentUser=' + (currentUser?currentUser.name:'none') + ' rec.sa1=' + rec.sa1); toast('Only ' + (rec.sa1||'the assigned owner') + ' or ' + MANAGER_NAME + ' can upload the PO for this opportunity'); return; }
+  if(!rec){ toast('Could not find this opportunity'); return; }
+  if(!canEditRecord(rec)){ toast('Only ' + (rec.sa1||'the assigned owner') + ' or ' + MANAGER_NAME + ' can upload the PO for this opportunity'); return; }
   const fileInput = document.getElementById('f_po_file');
   const file = fileInput.files[0];
-  if(!file){ debugShow_('STOPPED: no file selected in input'); toast('Choose a PDF or Word file first'); return; }
-  if(file.size > 15*1024*1024){ debugShow_('STOPPED: file too large, ' + file.size + ' bytes'); toast('File is too large (max 15MB)'); return; }
+  if(!file){ toast('Choose a PDF or Word file first'); return; }
+  if(file.size > 15*1024*1024){ toast('File is too large (max 15MB)'); return; }
 
-  debugShow_('Guards passed. File: ' + file.name + ' (' + file.size + ' bytes). Reading as base64…');
   const statusEl = document.getElementById('f_po_status');
   statusEl.textContent = 'Uploading…';
   try{
-    const base64 = await new Promise((resolve, reject)=>{
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-    debugShow_('Base64 read OK, length ' + base64.length + '. Sending to server:\n' + SHEETS_API_URL);
-    const res = await fetch(SHEETS_API_URL, {
+    // The file goes straight from this browser to Cloudinary — no Apps Script or
+    // Google Drive involved in the upload itself, which is what kept failing before.
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        action: 'uploadPO', id, name: currentUser.name, pin: currentUser.pin,
-        fileBase64: base64, fileName: file.name, mimeType: file.type,
-      }),
+      body: formData,
     });
-    const rawText = await res.text();
-    let data;
-    try{ data = JSON.parse(rawText); }
-    catch(parseErr){
-      debugShow_('SERVER DID NOT RETURN JSON.\nHTTP status: ' + res.status + '\n\nRaw response (first 1500 chars):\n' + rawText.slice(0,1500));
+    const data = await res.json();
+    if(!res.ok || !data.secure_url){
       statusEl.textContent = '';
+      toast('Upload failed: ' + (data.error && data.error.message ? data.error.message : 'unknown error'));
       return;
     }
-    debugShow_('SERVER RESPONSE:\n' + JSON.stringify(data, null, 2));
-    if(data.success){
-      const updated = Object.assign({}, rec, {
-        poFileUrl: data.poFileUrl, poFileName: data.poFileName,
-        poUploadedBy: data.poUploadedBy, poUploadedAt: data.poUploadedAt,
-      });
-      const idx = state.data.findIndex(r=>r.id===id);
-      if(idx>-1) state.data[idx] = updated;
-      updatePOSection(updated);
-      render();
-      toast(data.warning ? 'PO uploaded, but link-sharing may be restricted — check with your Drive admin' : 'PO uploaded');
-    } else {
-      statusEl.textContent = '';
-      toast(data.error || 'Could not upload the PO');
-    }
+    statusEl.textContent = 'Saving…';
+    // The link itself is saved through the same Save Opportunity path already used for
+    // every other field — the one part of this whole feature that's always worked.
+    const updated = Object.assign({}, rec, {
+      poFileUrl: data.secure_url,
+      poFileName: file.name,
+      poUploadedBy: currentUser.name,
+      poUploadedAt: new Date().toISOString(),
+      updatedBy: currentUser.name,
+      updatedAt: new Date().toISOString(),
+    });
+    await persistRecord(updated);
+    updatePOSection(updated);
+    statusEl.textContent = '';
+    toast('PO uploaded');
   }catch(e){
     statusEl.textContent = '';
-    debugShow_('JAVASCRIPT ERROR:\n' + (e.stack || e.message));
     toast('Could not upload the PO — check your connection');
     console.error(e);
   }
