@@ -542,7 +542,7 @@
 
       <div class="field full" id="f_po_wrap" style="display:none;border-top:1px solid var(--line);padding-top:14px;">
         <label>Purchase Order (PO)</label>
-        <div id="f_po_existing" style="display:none;font-size:13px;margin-bottom:8px;"></div>
+        <div id="f_po_existing" style="display:none;font-size:13px;margin-bottom:10px;align-items:center;gap:10px;"></div>
         <input id="f_po_file" type="file" accept=".pdf,.doc,.docx"/>
         <button type="button" class="btn btn-ghost" id="f_po_upload_btn" style="margin-top:8px;">Upload PO</button>
         <div id="f_po_status" style="font-size:12px;color:var(--slate);margin-top:6px;"></div>
@@ -834,7 +834,10 @@ function sheetsSerialToISO_(serial){
 }
 
 async function fetchRows(){
-  const range = encodeURIComponent(SHEET_TAB_NAME + '!A1:Z10000');
+  // Wide enough to comfortably cover every current + future column — the earlier bug
+  // was this range stopping at Z (26 columns) while the sheet had already grown to 31
+  // columns (archDiagram, PO fields, etc.), silently dropping those from every read.
+  const range = encodeURIComponent(SHEET_TAB_NAME + '!A1:BZ10000');
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_SPREADSHEET_ID}/values/${range}?valueRenderOption=UNFORMATTED_VALUE&key=${SHEETS_READ_API_KEY}`;
   const res = await fetch(url);
   if(!res.ok) throw new Error('Sheets API HTTP ' + res.status);
@@ -1809,26 +1812,49 @@ function openModal(rec){
 function closeModal(){ document.getElementById('overlay').classList.remove('open'); }
 
 // ---------- PO (Purchase Order) upload/download for Won deals ----------
+// Tracks whether a file has been chosen but not yet successfully uploaded — Save
+// Opportunity is blocked while this is true, so a selected-but-unsaved PO can't be
+// silently lost by closing/saving the form.
+let poFilePendingUpload = false;
+
 function updatePOSection(rec){
   const wrap = document.getElementById('f_po_wrap');
   const existingBox = document.getElementById('f_po_existing');
+  const uploadBtn = document.getElementById('f_po_upload_btn');
   const status = document.getElementById('f_status').value;
   const show = !!(rec && rec.id) && status === 'Won';
   wrap.style.display = show ? 'block' : 'none';
   document.getElementById('f_po_status').textContent = '';
   document.getElementById('f_po_file').value = '';
+  poFilePendingUpload = false;
+  uploadBtn.classList.remove('btn-primary');
+  uploadBtn.classList.add('btn-ghost');
   if(show && rec && rec.poFileUrl){
-    existingBox.style.display = 'block';
-    existingBox.innerHTML = `📄 <strong>${escapeHtml(rec.poFileName||'PO document')}</strong>
-      — uploaded by ${escapeHtml(rec.poUploadedBy||'')} ${rec.poUploadedAt ? '(' + escapeHtml(timeAgo(rec.poUploadedAt)) + ')' : ''}
-      &nbsp;<a href="${rec.poFileUrl}" target="_blank" rel="noopener" style="color:var(--orange-dark);font-weight:600;">Download</a>`;
-    document.getElementById('f_po_upload_btn').textContent = 'Replace PO';
+    existingBox.style.display = 'flex';
+    existingBox.innerHTML = `<span>📄 <strong>${escapeHtml(rec.poFileName||'PO document')}</strong>
+      — uploaded by ${escapeHtml(rec.poUploadedBy||'')} ${rec.poUploadedAt ? '(' + escapeHtml(timeAgo(rec.poUploadedAt)) + ')' : ''}</span>
+      <a href="${rec.poFileUrl}" target="_blank" rel="noopener" class="btn btn-primary" style="text-decoration:none;padding:6px 14px;font-size:12.5px;">⬇ Download PO</a>`;
+    uploadBtn.textContent = 'Replace PO';
   } else {
     existingBox.style.display = 'none';
     existingBox.innerHTML = '';
-    document.getElementById('f_po_upload_btn').textContent = 'Upload PO';
+    uploadBtn.textContent = 'Upload PO';
   }
 }
+document.getElementById('f_po_file').addEventListener('change', ()=>{
+  const uploadBtn = document.getElementById('f_po_upload_btn');
+  const hasFile = document.getElementById('f_po_file').files.length > 0;
+  poFilePendingUpload = hasFile;
+  if(hasFile){
+    uploadBtn.classList.remove('btn-ghost');
+    uploadBtn.classList.add('btn-primary');
+    document.getElementById('f_po_status').textContent = 'File chosen — click "Upload PO" to save it before saving the opportunity.';
+  } else {
+    uploadBtn.classList.remove('btn-primary');
+    uploadBtn.classList.add('btn-ghost');
+    document.getElementById('f_po_status').textContent = '';
+  }
+});
 async function uploadPOFile(){
   const id = state.editingId;
   if(!id){ toast('Save the opportunity first before uploading a PO'); return; }
@@ -1849,7 +1875,7 @@ async function uploadPOFile(){
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/raw/upload`, {
       method: 'POST',
       body: formData,
     });
@@ -1903,6 +1929,10 @@ function getOwnerField(fieldId){
 
 async function saveRow(){
   if(!requireLogin()) return;
+  if(poFilePendingUpload){
+    toast('You chose a PO file but haven\'t uploaded it yet — click "Upload PO" first, or clear the file selection, before saving.');
+    return;
+  }
   const f = id => document.getElementById(id).value.trim();
   const client = f('f_client');
   if(!client){ toast('Client / Project name is required'); return; }
