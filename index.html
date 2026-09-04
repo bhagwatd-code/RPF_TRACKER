@@ -1709,7 +1709,7 @@ function renderTable(){
       <td class="money">${fmtMoney(r.acv)}</td>
       <td class="days">${fmtDate(parseDateFlexible(r.submissionDate))}</td>
       <td class="days">${dOpen !== null ? dOpen + ' d' : '—'}</td>
-      <td>${r.poFileUrl ? `<a href="${r.poFileUrl}" target="_blank" rel="noopener" class="btn btn-primary" style="text-decoration:none;padding:5px 11px;font-size:11.5px;white-space:nowrap;" title="${escapeHtml(r.poFileName||'PO document')}">⬇ PO</a>` : '<span style="color:var(--slate-light);font-size:12px;">—</span>'}</td>
+      <td>${(r.poFileUrl && canEditRecord(r)) ? `<a href="${r.poFileUrl}" target="_blank" rel="noopener" class="btn btn-primary" style="text-decoration:none;padding:5px 11px;font-size:11.5px;white-space:nowrap;" title="${escapeHtml(r.poFileName||'PO document')}">⬇ PO</a>` : '<span style="color:var(--slate-light);font-size:12px;">—</span>'}</td>
       <td class="remarks-cell">${escapeHtml(r.remarks||'')}</td>
       <td class="updated-cell">${r.updatedBy ? escapeHtml(r.updatedBy)+'<br>'+timeAgo(r.updatedAt) : '—'}</td>
       <td>
@@ -1742,7 +1742,7 @@ function renderBoard(){
           <div class="bc-req">${escapeHtml(r.requirement||'')}</div>
           <div class="bc-meta"><span class="bc-owner">${escapeHtml(r.sa1||'Unassigned')}</span><span>${escapeHtml(r.type||'')}</span></div>
           <div class="bc-value">${fmtMoney(r.status==='Won' ? (r.wonValue ?? r.estValue) : r.estValue)}</div>
-          ${r.poFileUrl ? `<a href="${r.poFileUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation();" class="btn btn-primary" style="display:inline-block;margin-top:6px;text-decoration:none;padding:5px 11px;font-size:11px;" title="${escapeHtml(r.poFileName||'PO document')}">⬇ Download PO</a>` : ''}
+          ${(r.poFileUrl && canEditRecord(r)) ? `<a href="${r.poFileUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation();" class="btn btn-primary" style="display:inline-block;margin-top:6px;text-decoration:none;padding:5px 11px;font-size:11px;" title="${escapeHtml(r.poFileName||'PO document')}">⬇ Download PO</a>` : ''}
         </div>`;
       }).join('') || '<div class="no-deadlines">Nothing here</div>'}
     </div>`;
