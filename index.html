@@ -1497,7 +1497,8 @@ function onContractUnitChange(){
 // this is what makes it feel like each owner's own personal dashboard.
 function getOwnerScopedData(){
   if(!state.ownerFilter) return state.data;
-  return state.data.filter(r => r.sa1 === state.ownerFilter || r.sa2 === state.ownerFilter);
+  // A deal also belongs to someone's view when they're listed as its Supporting Presales Partner.
+  return state.data.filter(r => r.sa1 === state.ownerFilter || r.sa2 === state.ownerFilter || r.supportPartner === state.ownerFilter);
 }
 // ---------- Activity bell ----------
 // Derived entirely from existing timestamp fields — no separate audit log needed.
@@ -1578,7 +1579,7 @@ function renderSidebar(){
   if(heading) heading.textContent = state.ownerFilter ? state.ownerFilter + "'s Opportunities" : 'All Opportunities';
   const el = document.getElementById('sidebar');
   const counts = {};
-  OWNERS.forEach(o=>{ counts[o] = state.data.filter(r=>r.sa1===o || r.sa2===o).length; });
+  OWNERS.forEach(o=>{ counts[o] = state.data.filter(r=>r.sa1===o || r.sa2===o || r.supportPartner===o).length; });
   const teamMembers = OWNERS.filter(o=>o!==MANAGER_NAME);
   el.innerHTML = `
     <div class="sidebar-label">Overview</div>
@@ -1620,7 +1621,7 @@ function getFiltered(){
     if(fs && r.status !== fs) return false;
     if(ft && r.type !== ft) return false;
     if(fsec && r.sector !== fsec) return false;
-    if(fo && r.sa1 !== fo && r.sa2 !== fo) return false;
+    if(fo && r.sa1 !== fo && r.sa2 !== fo && r.supportPartner !== fo) return false;
     if(periodRange){
       const iso = parseDateFlexible(r.dateReceived);
       if(!iso) return false;
@@ -2602,7 +2603,13 @@ async function exportKRAReport(){
   const scoped = getFiltered(); // respects sidebar owner, search, status/type/sector, and period filters
   if(!scoped.length){ toast('Nothing to export in the current view'); return; }
 
-  const ownerNames = [...new Set(scoped.map(r=>r.sa1).filter(Boolean))].sort();
+  // If one presales person is selected, export just their report (including deals where
+  // they're the supporting partner). Otherwise one sheet per person involved as lead OR support.
+  const ownerNames = (state.ownerFilter && OWNERS.includes(state.ownerFilter))
+    ? [state.ownerFilter]
+    : [...new Set(scoped.flatMap(r=>[r.sa1, r.supportPartner]).filter(Boolean))].sort();
+  // Everything a person worked on: deals they lead + deals they support.
+  const involvedIn = owner => scoped.filter(r=>r.sa1===owner || r.supportPartner===owner);
   const wb = new ExcelJS.Workbook();
   wb.creator = 'SWARAJ Lakshya RFP Tracker';
   wb.created = new Date();
@@ -2636,18 +2643,19 @@ async function exportKRAReport(){
 
   let fsRow = 4;
   ownerNames.forEach((owner, idx)=>{
-    const mine = scoped.filter(r=>r.sa1===owner);
+    const mine = involvedIn(owner);
+    const ledCount = mine.filter(r=>r.sa1===owner).length;
+    const supportCount = mine.filter(r=>r.supportPartner===owner && r.sa1!==owner).length;
     const submitted = mine.filter(r=>KRA_SUBMITTED_STATUSES.includes(r.status));
     const won = mine.filter(r=>r.status==='Won');
     const lost = mine.filter(r=>KRA_LOST_STATUSES.includes(r.status));
-    const backEnd = scoped.filter(r=>r.supportPartner===owner);
     const arcSubmitted = submitted.reduce((s,r)=>s+(Number(r.acv)||0),0);
     const tcvSubmitted = submitted.reduce((s,r)=>s+(Number(r.tcv)||0),0);
     const arcWon = won.reduce((s,r)=>s+(Number(r.acv)||0),0);
     const tcvWon = won.reduce((s,r)=>s+(Number(r.wonValue ?? r.tcv)||0),0);
     const presentations = mine.filter(r=>r.type==='Presentation/Workshop').length;
 
-    const vals = ['', idx+1, owner, mine.length, mine.length, backEnd.length, submitted.length,
+    const vals = ['', idx+1, owner, mine.length, ledCount, supportCount, submitted.length,
       arcSubmitted, tcvSubmitted, won.length, lost.length, arcWon, tcvWon,
       submitted.length ? won.length/submitted.length : 0,
       arcSubmitted ? arcWon/arcSubmitted : 0,
@@ -2715,7 +2723,7 @@ async function exportKRAReport(){
       kraHeaderStyle(cell, {fill:'FF002060'});
     });
 
-    const mine = scoped.filter(r=>r.sa1===owner);
+    const mine = involvedIn(owner);
     mine.forEach((r, idx)=>{
       const rIdx = idx+2;
       const isSubmitted = KRA_SUBMITTED_STATUSES.includes(r.status) ? 1 : 0;
